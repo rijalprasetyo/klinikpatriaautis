@@ -186,6 +186,9 @@
                 <a href="{{ route('dokter.riwayat-pasien') }}" class="{{ Request::routeIs('dokter.riwayat-pasien') ? 'active' : '' }}">
                     <i class="fa-solid fa-history"></i> Riwayat Pemeriksaan
                 </a>
+                <a href="{{ route('dokter.biodata') }}" class="{{ Request::routeIs('dokter.biodata') ? 'active' : '' }}">
+                    <i class="fa-solid fa-user-gear"></i> Biodata
+                </a>
             </div>
         </div>
 

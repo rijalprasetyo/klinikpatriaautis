@@ -357,6 +357,7 @@ class AdminController extends Controller
 
         return redirect()->route('admin.jam-pelayanan')->with('success', 'Slot jam pelayanan berhasil dihapus.');
     }
+
     public function dataMasterUser(Request $request, $type = 'user')
     {
         $activeTab = $type;
@@ -366,18 +367,21 @@ class AdminController extends Controller
             case 'dokter':
                 $data = Dokter::all();
                 break;
+
             case 'admin':
-                $data = Admin::all();
+                $data = Admin::where('role', 'master')->get();
                 break;
+
             case 'user':
             default:
                 $data = User::all();
-                $activeTab = 'user'; // Pastikan tab default adalah user
+                $activeTab = 'user'; // pastikan tab default adalah user
                 break;
         }
 
         return view('admin.user', compact('data', 'activeTab'));
     }
+
     public function storeDokter(Request $request)
     {
         $request->validate([
@@ -403,6 +407,33 @@ class AdminController extends Controller
             ->with('success', 'Data dokter baru berhasil ditambahkan.');
     }
 
+    public function resetDokterPassword($id)
+    {
+        // Temukan dokter berdasarkan ID
+        $dokter = Dokter::find($id);
+
+        if (!$dokter) {
+            return back()->with('error', 'Dokter tidak ditemukan.');
+        }
+
+        // Password baru diatur sama dengan Username
+        $newPassword = $dokter->username; 
+
+        try {
+            // Reset password
+            $dokter->password = Hash::make($newPassword);
+            $dokter->save();
+            
+            // Pesan sukses tanpa menampilkan password baru
+            return back()->with('success', "Password dokter **{$dokter->nama_dokter}** berhasil direset menjadi **sesuai Username ({$dokter->username})**.");
+            
+        } catch (\Exception $e) {
+            Log::error("Gagal reset password dokter {$id}: " . $e->getMessage());
+            
+            return back()->with('error', 'Gagal mereset password dokter. Silakan coba lagi.');
+        }
+    }
+
     public function storeAdmin(Request $request)
     {
         $request->validate([
@@ -417,7 +448,8 @@ class AdminController extends Controller
             'username' => $request->username,
             'email' => $request->email,
             'no_hp' => $request->no_hp,
-            'password' => Hash::make($request->username), // password = username
+            'password' => Hash::make($request->username),
+            'role' => 'master',
         ]);
 
         return redirect()->route('admin.master.users', ['type' => 'admin'])

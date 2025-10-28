@@ -66,6 +66,7 @@ Route::middleware('auth:admin')->group(function () {
     Route::get('/admin/pasien/{id}/catatan', [AdminController::class, 'getCatatan'])->name('admin.pasien.get-catatan');
     Route::post('/admin/data-backup', [DataBackupKontroler::class, 'backup'])->name('admin.data-backup.store');
     Route::post('/admin/data-backup/reset', [DataBackupKontroler::class, 'resetSystem'])->name('admin.data-backup.reset');
+    Route::put('/admin/dokter/{id}/reset-password', [AdminController::class, 'resetDokterPassword'])->name('admin.dokter.resetPassword');
 });
 
 // DOKTER
@@ -83,6 +84,9 @@ Route::middleware('auth:dokter')->group(function () {
     Route::post('/dokter/{id}/catatan/update', [DokterController::class, 'updateCatatan'])->name('dokter.pasien.update-catatan');
     Route::post('/dokter/{id}/catatan/delete', [DokterController::class, 'deleteCatatan'])->name('dokter.pasien.delete-catatan');
     Route::get('/dokter/riwayat', [DokterController::class, 'riwayatPasien'])->name('dokter.riwayat-pasien');
+    Route::get('/dokter/biodata', [DokterController::class, 'biodata'])->name('dokter.biodata');
+    Route::post('/dokter/biodata/update', [DokterController::class, 'updateBiodata'])->name('dokter.biodata.update');
+    Route::post('/dokter/password/update', [DokterController::class, 'updatePassword'])->name('dokter.password.update');
 });
 
 // USER

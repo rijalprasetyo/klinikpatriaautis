@@ -8,8 +8,6 @@
     $isMasyarakatUmum = ($kategori === 'Masyarakat Umum');
     
     // Asumsi biaya tetap sesuai kategori
-    $biaya = ($isSktm || $isNonSktm) ? 30000 : 80000;
-    // Pengecekan biaya lama (Disabilitas SKTM: 30k, Non-SKTM/Umum: 80k)
     // Di kode Anda, SKTM 30k, lainnya 80k. Kita ikuti logika Anda yang awal:
     $biaya = $isSktm ? 30000 : 80000;
     $biayaFormatted = 'Rp ' . number_format($biaya, 0, ',', '.');
@@ -879,7 +877,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- FILE UPLOAD HANDLERS (TIDAK BERUBAH) ---
     
     function setupFileUpload(uploadZone, input, preview, fileNameEl, fileSizeEl) {
-        // ... (fungsi setupFileUpload tidak berubah) ...
         // Click to upload
         uploadZone.addEventListener('click', () => input.click());
 
@@ -1077,9 +1074,29 @@ document.addEventListener('DOMContentLoaded', function() {
     `;
     document.head.appendChild(style);
 
-    // --- DATE & TIME VALIDATION (TIDAK BERUBAH) ---
+    // --- DATE & TIME VALIDATION (MODIFIED) ---
     
-    function checkWaktuAvailability() {
+    function getNextValidDate(currentDate) {
+        // Fungsi pembantu untuk mendapatkan tanggal valid berikutnya (bukan hari Jumat)
+        let nextDate = new Date(currentDate);
+        nextDate.setDate(currentDate.getDate() + 1);
+
+        // Langsung lompat jika hari Jumat
+        if (nextDate.getDay() === 5) { // 5 = Jumat
+            nextDate.setDate(nextDate.getDate() + 1); // Lompat ke Sabtu
+        }
+        return nextDate;
+    }
+
+    function formatDate(date) {
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    }
+    
+    // Fungsi ini TIDAK BERUBAH dari sebelumnya
+    function checkWaktuAvailability() { 
         const today = new Date();
         const selectedDate = new Date(tglKunjunganInput.value);
         
@@ -1121,13 +1138,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+
     function setTanggalKunjunganConstraint() {
         const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-        const minDate = `${yyyy}-${mm}-${dd}`;
+        const todayDay = today.getDay(); // 0=Minggu, 1=Senin, ..., 5=Jumat, 6=Sabtu
+        
+        const minDate = formatDate(today);
+        let maxDateObj = todayDay === 4 // Jika hari ini Kamis (4)
+            ? getNextValidDate(getNextValidDate(today)) // Lusa: Jumat, skip ke Sabtu
+            : getNextValidDate(today); // Besok
+
+        const maxDate = formatDate(maxDateObj);
+        
         tglKunjunganInput.setAttribute('min', minDate);
+        // Kita tidak bisa menggunakan 'max' attribute karena kita perlu lompatan khusus (Jumat)
+        // Jadi, kita hanya membatasi secara manual di event listener
 
         tglKunjunganInput.addEventListener('input', checkDateAndValidate);
         tglKunjunganInput.addEventListener('change', checkDateAndValidate);
@@ -1136,18 +1161,32 @@ document.addEventListener('DOMContentLoaded', function() {
             const dateValue = tglKunjunganInput.value;
             if (!dateValue) return;
 
-            const selectedDate = new Date(dateValue + 'T00:00:00');
+            // Membuat objek Date dari nilai input untuk validasi lebih mudah
+            // Menggunakan 'T00:00:00' agar waktu diabaikan dan tetap pada zona lokal
+            const selectedDate = new Date(dateValue + 'T00:00:00'); 
             const dayOfWeek = selectedDate.getDay(); 
+            const selectedDateString = formatDate(selectedDate);
 
-            if (dayOfWeek === 5) {
+            // Validasi Hari Jumat
+            if (dayOfWeek === 5) { // 5 = Jumat
                 showToast('Pendaftaran tidak tersedia pada hari Jumat!', 'error');
                 tglKunjunganInput.value = ''; 
                 waktuSelect.selectedIndex = 0;
-            } else {
-                checkWaktuAvailability();
+                return;
             }
+            
+            // Validasi Batasan 2 Hari (Hari ini dan Besok)
+            if (selectedDateString > maxDate) {
+                showToast(`Tanggal kunjungan maksimal ${maxDate} (Hari Ini dan Besok Yang Bukan Jumat)!`, 'error');
+                tglKunjunganInput.value = '';
+                waktuSelect.selectedIndex = 0;
+                return;
+            }
+
+            checkWaktuAvailability();
         }
 
+        // Set initial validation
         if (tglKunjunganInput.value) {
             checkDateAndValidate();
         }
@@ -1231,8 +1270,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // LOGIKA BARU UNTUK MENGISI NILAI LAYANAN_ID DI FORM SEBELUM SUBMIT
         if (!isMasyarakatUmum) {
-            // Kategori Disabilitas
-            if (layananSelect.value !== 'Lainnya') {
+             if (layananSelect.value !== 'Lainnya') {
                 // Jika bukan 'Lainnya', set nilai input hidden layanan_id = nilai select
                 layananManualInput.value = layananSelect.value;
             }
@@ -1273,8 +1311,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Final check untuk memastikan layanan_id terisi dengan string yang benar
         if (!isMasyarakatUmum) {
              if (layananSelect.value !== 'Lainnya') {
-                document.getElementById('layanan_manual_input').value = layananSelect.value;
-            }
+                 document.getElementById('layanan_manual_input').value = layananSelect.value;
+             }
         } else {
             // Tidak perlu aksi tambahan, karena nama input sudah benar: layanan_id
         }

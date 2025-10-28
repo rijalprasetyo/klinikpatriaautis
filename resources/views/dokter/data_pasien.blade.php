@@ -454,7 +454,7 @@
             <form id="form-upload-video" method="POST" action="" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body">
-                    <p class="text-muted mb-4">Unggah video baru (MP4/MOV, Maks. 5MB) atau lihat video yang sudah ada. Pilih hanya video yang ingin diubah.</p>
+                    <p class="text-muted mb-4">Unggah video baru (MP4/MOV, Maks. 25mb) atau lihat video yang sudah ada. Pilih hanya video yang ingin diubah.</p>
 
                     <div class="row">
                         {{-- Unggah/Lihat Video Before --}}
@@ -484,7 +484,7 @@
                                     <div class="mb-3">
                                         <label for="video_before_file" class="form-label">Unggah Video Baru</label>
                                         <input class="form-control @error('video_before') is-invalid @enderror" type="file" id="video_before_file" name="video_before" accept="video/mp4,video/quicktime">
-                                        <small class="text-muted">Maks. 5MB (MP4/MOV)</small>
+                                        <small class="text-muted">Maks. 25mb (MP4/MOV)</small>
                                         @error('video_before')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -525,7 +525,7 @@
                                     <div class="mb-3">
                                         <label for="video_after_file" class="form-label">Unggah Video Baru</label>
                                         <input class="form-control @error('video_after') is-invalid @enderror" type="file" id="video_after_file" name="video_after" accept="video/mp4,video/quicktime">
-                                        <small class="text-muted">Maks. 5MB (MP4/MOV)</small>
+                                        <small class="text-muted">Maks. 25mb (MP4/MOV)</small>
                                         @error('video_after')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror

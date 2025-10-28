@@ -8,6 +8,21 @@
         <h1 class="h3 mb-0 text-gray-800 fw-bold">Data Master Pengguna Sistem</h1>
     </div>
 
+    {{-- Alerts --}}
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show rounded-3" role="alert">
+            <strong>Berhasil!</strong> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show rounded-3" role="alert">
+            <strong>Gagal!</strong> {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     {{-- CARD TABEL --}}
     <div class="card shadow-sm border-0 mb-4">
         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
@@ -72,7 +87,7 @@
                                 <th>Email</th>
                                 <th>No. HP</th>
                             @endif
-                            <th style="width: 150px;">Aksi</th>
+                            <th style="width: 200px;">Aksi</th> {{-- Lebar Aksi diperbesar --}}
                         </tr>
                     </thead>
                     <tbody>
@@ -120,11 +135,17 @@
                                 @endif
                                 
                                 <td class="text-center">
-                                    {{-- Tombol Ubah Status Dokter --}}
                                     @if ($activeTab == 'dokter')
+                                        {{-- Tombol Ubah Status Dokter --}}
                                         <button class="btn btn-warning btn-sm" title="Ubah Status"
                                             data-bs-toggle="modal" data-bs-target="#ubahStatusModal{{ $item->id }}">
                                             <i class="fa-solid fa-rotate"></i>
+                                        </button>
+                                        
+                                        {{-- Tombol RESET PASSWORD DOKTER --}}
+                                        <button class="btn btn-info btn-sm text-white" title="Reset Password"
+                                            data-bs-toggle="modal" data-bs-target="#resetPasswordModal{{ $item->id }}">
+                                            <i class="fa-solid fa-lock-open"></i>
                                         </button>
 
                                         {{-- Tombol Hapus Dokter (Modal Bootstrap) --}}
@@ -133,7 +154,7 @@
                                             <i class="fa-solid fa-trash"></i>
                                         </button>
 
-                                        {{-- MODAL KONFIRMASI HAPUS DOKTER --}}
+                                        {{-- MODAL KONFIRMASI HAPUS DOKTER (Kode yang sudah ada) --}}
                                         <div class="modal fade" id="deleteDokterModal{{ $item->id }}" tabindex="-1" aria-hidden="true">
                                             <div class="modal-dialog modal-dialog-centered">
                                                 <div class="modal-content border-0 shadow">
@@ -167,15 +188,48 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        
+                                        {{-- MODAL KONFIRMASI RESET PASSWORD DOKTER (MODIFIED) --}}
+                                        <div class="modal fade" id="resetPasswordModal{{ $item->id }}" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content border-0 shadow">
+                                                    <div class="modal-header bg-info text-white">
+                                                        <h5 class="modal-title">
+                                                            <i class="fa-solid fa-lock-open me-2"></i> Reset Password Dokter
+                                                        </h5>
+                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <p class="text-danger fw-bold">PERINGATAN:</p>
+                                                        <p>
+                                                            Anda akan mereset password untuk dokter **{{ $item->nama_dokter }}** (**Username: {{ $item->username }}**).
+                                                        </p>
+                                                        <p class="mb-0">
+                                                            Password dokter akan diatur ulang dan disamakan dengan nilai **Username** saat ini. Mohon informasikan perubahan ini kepada dokter yang bersangkutan.
+                                                        </p>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                        <form action="{{ route('admin.dokter.resetPassword', $item->id) }}" method="POST" class="d-inline">
+                                                            @csrf
+                                                            @method('PUT')
+                                                            <button type="submit" class="btn btn-info text-white">
+                                                                <i class="fa-solid fa-check me-1"></i> Reset Password Sekarang
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
 
-                                    {{-- Tombol Hapus Admin (Modal Bootstrap) --}}
                                     @elseif ($activeTab == 'admin')
+                                        {{-- Tombol Hapus Admin (Modal Bootstrap) --}}
                                         <button type="button" class="btn btn-danger btn-sm" title="Hapus Data"
                                             data-bs-toggle="modal" data-bs-target="#deleteAdminModal{{ $item->id }}">
                                             <i class="fa-solid fa-trash"></i>
                                         </button>
 
-                                        {{-- MODAL KONFIRMASI HAPUS ADMIN --}}
+                                        {{-- MODAL KONFIRMASI HAPUS ADMIN (Kode yang sudah ada) --}}
                                         <div class="modal fade" id="deleteAdminModal{{ $item->id }}" tabindex="-1" aria-hidden="true">
                                             <div class="modal-dialog modal-dialog-centered">
                                                 <div class="modal-content border-0 shadow">
@@ -205,7 +259,7 @@
                                 </td>
                             </tr>
 
-                            {{-- MODAL UBAH STATUS DOKTER --}}
+                            {{-- MODAL UBAH STATUS DOKTER (Kode yang sudah ada) --}}
                             @if ($activeTab == 'dokter')
                             <div class="modal fade" id="ubahStatusModal{{ $item->id }}" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog modal-dialog-centered">

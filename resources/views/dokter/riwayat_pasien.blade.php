@@ -385,7 +385,7 @@
             <form id="form-upload-video" method="POST" action="" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body">
-                    <p class="text-muted mb-4">Unggah video baru (MP4/MOV, Maks. 5MB) atau lihat video yang sudah ada.</p>
+                    <p class="text-muted mb-4">Unggah video baru (MP4/MOV, Maks. 25mb) atau lihat video yang sudah ada.</p>
                     <div class="row">
                         <div class="col-md-6 mb-4">
                             <div class="card shadow-sm h-100">
@@ -408,7 +408,7 @@
                                     <div class="mb-3">
                                         <label for="video_before_file" class="form-label">Unggah Video Baru</label>
                                         <input class="form-control" type="file" id="video_before_file" name="video_before" accept="video/mp4,video/quicktime">
-                                        <small class="text-muted">Maks. 5MB</small>
+                                        <small class="text-muted">Maks. 25mb</small>
                                     </div>
                                     <button type="button" class="btn btn-outline-danger btn-sm w-100 mt-2 btn-delete-video" data-type="video_before" data-bs-target="#confirmDeleteModal" data-bs-toggle="modal" id="btn-delete-before" style="display: none;">
                                         <i class="fa-solid fa-trash me-1"></i> Hapus
@@ -437,7 +437,7 @@
                                     <div class="mb-3">
                                         <label for="video_after_file" class="form-label">Unggah Video Baru</label>
                                         <input class="form-control" type="file" id="video_after_file" name="video_after" accept="video/mp4,video/quicktime">
-                                        <small class="text-muted">Maks. 5MB</small>
+                                        <small class="text-muted">Maks. 25mb</small>
                                     </div>
                                     <button type="button" class="btn btn-outline-danger btn-sm w-100 mt-2 btn-delete-video" data-type="video_after" data-bs-target="#confirmDeleteModal" data-bs-toggle="modal" id="btn-delete-after" style="display: none;">
                                         <i class="fa-solid fa-trash me-1"></i> Hapus

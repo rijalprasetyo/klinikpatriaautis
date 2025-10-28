@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use App\Models\DataPasien; // pastikan model ini sesuai
 use Carbon\Carbon;
@@ -301,8 +302,8 @@ class DokterController extends Controller
     public function uploadVideos(Request $request, $id)
     {
         $request->validate([
-            'video_before' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/x-flv|max:25600', // Maks 5MB = 5120 KB
-            'video_after' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/x-flv|max:25600', // Maks 5MB
+            'video_before' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/x-flv|max:25600', // Maks 25MB = 5120 KB
+            'video_after' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/x-flv|max:25600', // Maks 25MB
         ], [
             'video_before.max' => 'Ukuran Video Sebelum Pemeriksaan maksimal 25 MB.',
             'video_after.max' => 'Ukuran Video Sesudah Pemeriksaan maksimal 25 MB.',
@@ -443,6 +444,69 @@ class DokterController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('dokter.login')->with('success', 'Anda berhasil logout.');
+    }
+
+    public function biodata()
+    {
+        $dokter = Auth::guard('dokter')->user();
+        return view('dokter.biodata', compact('dokter'));
+    }
+
+    // Fungsi Update Biodata (TIDAK BERUBAH)
+    public function updateBiodata(Request $request)
+    {
+        $dokter = Auth::guard('dokter')->user();
+
+        $request->validate([
+            'nama_dokter' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:dokters,username,' . $dokter->id,
+            'email' => 'required|string|email|max:255|unique:dokters,email,' . $dokter->id,
+            'no_hp' => 'nullable|string|max:15',
+            'alamat' => 'nullable|string',
+        ], [
+            'username.unique' => 'Username ini sudah digunakan oleh dokter lain.',
+            'email.unique' => 'Email ini sudah digunakan oleh dokter lain.',
+        ]);
+
+        $dokter->update([
+            'nama_dokter' => $request->nama_dokter,
+            'username' => $request->username,
+            'email' => $request->email,
+            'no_hp' => $request->no_hp,
+            'alamat' => $request->alamat,
+        ]);
+
+        return redirect()->route('dokter.biodata')->with('success', 'Biodata berhasil diperbarui!');
+    }
+
+    /**
+     * Mengupdate password dokter (TANPA PASSWORD LAMA).
+     */
+    public function updatePassword(Request $request)
+    {
+        $dokter = Auth::guard('dokter')->user();
+
+        // 1. Validasi Input (current_password dihapus)
+        $request->validate([
+            'username_konfirmasi' => 'required|string',
+            'email_konfirmasi' => 'required|email',
+            'password' => 'required|string|min:8|confirmed',
+        ], [
+            'password.confirmed' => 'Konfirmasi password baru tidak cocok.',
+        ]);
+
+        // 2. Verifikasi Username dan Email
+        // Ini berfungsi sebagai lapisan konfirmasi identitas tanpa menggunakan password lama
+        if ($request->username_konfirmasi !== $dokter->username || $request->email_konfirmasi !== $dokter->email) {
+            return back()->withErrors(['username_konfirmasi' => 'Username atau Email konfirmasi tidak cocok dengan akun Anda.'])->withInput()->with('error', 'Gagal memperbarui password. Verifikasi akun gagal.');
+        }
+
+        // 3. Update Password
+        $dokter->update([
+            'password' => Hash::make($request->password),
+        ]);
+
+        return redirect()->route('dokter.biodata')->with('success', 'Password berhasil diperbarui!');
     }
 
 }
