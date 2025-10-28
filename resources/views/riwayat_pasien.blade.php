@@ -493,7 +493,7 @@
                             <td class="fw-bold">{{ $index + 1 }}</td>
                             <td>{{ $pasien->nama_pasien }}</td>
                             <td>{{ \Carbon\Carbon::parse($pasien->tgl_kunjungan)->isoFormat('D MMM YYYY') }}</td>
-                            <td>{{ $pasien->layanan->pelayanan ?? '-' }}</td>
+                            <td>{{ $pasien->layanan_id ?? '-' }}</td>
                             <td>{{ $pasien->dokter->nama_dokter ?? '-' }}</td>
                             <td>
                                 <span class="badge bg-success">
@@ -789,7 +789,7 @@
         document.getElementById('detail-dokter-mobile').textContent = d.dokter_nama || '-';
         document.getElementById('detail-tgl-kunjungan-mobile').textContent = d.tgl_kunjungan;
         document.getElementById('detail-waktu-mobile').textContent = d.waktu_kunjungan;
-        document.getElementById('detail-layanan-mobile').textContent = d.layanan;
+        document.getElementById('detail-layanan-mobile').textContent = d.layanan_id;
         document.getElementById('detail-kategori-mobile').textContent = d.kategori_pendaftaran;
         document.getElementById('detail-alamat-mobile').textContent = d.alamat;
         document.getElementById('detail-keluhan-mobile').textContent = d.keluhan;
@@ -884,33 +884,46 @@
         // =========================================================
 
         function loadDetailPasien(pasienId) {
-            const loading = document.getElementById('loading-spinner-detail');
-            const detailTable = document.getElementById('detail-table');
-            const detailCards = document.getElementById('detail-cards-mobile');
-            
-            loading.style.display = 'block';
-            detailTable.style.display = 'none';
-            detailCards.style.display = 'none';
+        const loading = document.getElementById('loading-spinner-detail');
+        const detailTable = document.getElementById('detail-table');
+        const detailCards = document.getElementById('detail-cards-mobile');
+        
+        loading.style.display = 'block';
+        detailTable.style.display = 'none';
+        detailCards.style.display = 'none';
 
-            fetch(detailUrlTemplate.replace('PASIEN_ID', pasienId))
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('riwayat-antrian').textContent = `Antrian: ${data.data.nomor_antrian}`;
-                    
-                    // Update semua field
-                    updateDetailDisplay(data);
-                    
-                    // Toggle tampilan sesuai ukuran layar
-                    toggleDetailView();
-                    
-                    loading.style.display = 'none';
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Gagal mengambil detail kunjungan.');
-                    loading.style.display = 'none';
-                });
-        }
+        fetch(detailUrlTemplate.replace('PASIEN_ID', pasienId))
+            .then(response => {
+                if (!response.ok) {
+                    // Tangkap error 404/500/lainnya
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // PASTIKAN data.data TERISI JIKA STATUS SUCCESS
+                if (data.status !== 'success' || !data.data) {
+                    throw new Error('Respons sukses, tapi data kosong.');
+                }
+                
+                document.getElementById('riwayat-antrian').textContent = `Antrian: ${data.data.nomor_antrian}`;
+                
+                // Update semua field
+                updateDetailDisplay(data); // Fungsi ini yang mengisi field
+                
+                // Toggle tampilan sesuai ukuran layar
+                toggleDetailView();
+                
+                loading.style.display = 'none';
+            })
+            .catch(error => {
+                console.error('Error fetching detail:', error);
+                alert('Gagal mengambil detail kunjungan. Pastikan Anda login sebagai pemilik data.');
+                loading.style.display = 'none';
+                // Tampilkan kembali tabel/cards kosong jika gagal
+                toggleDetailView(); 
+            });
+    }
         
         function loadCatatanDokter(pasienId) {
             const loading = document.getElementById('loading-spinner-catatan');

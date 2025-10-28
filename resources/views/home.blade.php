@@ -845,7 +845,7 @@
                                     </td>
                                     <td>
                                         {{ $data->nama_pasien }} <br>
-                                        <small class="text-muted">{{ $data->layanan->pelayanan ?? '-' }}</small>
+                                        <small class="text-muted">{{ $data->layanan_id ?? '-' }}</small>
                                     </td>
                                     <td class="text-center">
                                         <span class="badge-custom warning">{{ $data->status_pemeriksaan }}</span>
@@ -890,7 +890,7 @@
                             <div class="schedule-card-footer">
                                 <div>
                                     <div class="schedule-patient-name">{{ $data->nama_pasien }}</div>
-                                    <div class="schedule-service">{{ $data->layanan->pelayanan ?? '-' }}</div>
+                                    <div class="schedule-service">{{ $data->layanan_id ?? '-' }}</div>
                                 </div>
                             </div>
                         </div>
@@ -993,7 +993,8 @@
         <div class="card-modern">
             <div class="card-body p-4">
                 <div class="services-grid">
-                    @foreach ($layanan as $item)
+                    {{-- Menggunakan $jenis_layanan sesuai dengan controller home() yang sudah diperbaiki --}}
+                    @foreach ($jenis_layanan as $item)
                         <div class="service-card">
                             <div class="service-icon">
                                 <img src="{{ asset('assets/' . $item->icon_pelayanan) }}"
@@ -1003,7 +1004,8 @@
                         </div>
                     @endforeach
 
-                    @if($layanan->isEmpty())
+                    {{-- Menggunakan $jenis_layanan di pengecekan isEmpty() --}}
+                    @if($jenis_layanan->isEmpty())
                         <div class="text-center text-muted" style="grid-column: 1 / -1;">
                             Belum ada data layanan yang tersedia saat ini.
                         </div>

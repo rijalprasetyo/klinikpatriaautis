@@ -69,18 +69,19 @@ class AdminController extends Controller
         // Ambil nilai filter dari request
         $filterDate = $request->query('date');
         $filterStatusBerkas = $request->query('status_berkas');
-        $filterStatusPemeriksaan = $request->query('status_pemeriksaan'); // Filter baru
-        $filterNamaPasien = $request->query('nama_pasien'); // Filter baru
+        $filterStatusPemeriksaan = $request->query('status_pemeriksaan'); 
+        $filterNamaPasien = $request->query('nama_pasien'); 
 
         // =======================================================
         // 1. Data Pasien HARI INI
         // =======================================================
-        $queryHariIni = DataPasien::with(['layanan', 'waktu'])
+        // PERBAIKAN: Menghapus 'layanan' dari with()
+        $queryHariIni = DataPasien::with(['waktu']) 
             ->whereDate('tgl_kunjungan', $today)
             ->orderBy('waktu_id', 'asc');
 
         // Filter Status Pemeriksaan (Hari Ini)
-        if ($filterStatusPemeriksaan && in_array($filterStatusPemeriksaan, ['Belum Diperiksa', 'Sudah Diperiksa'])) {
+        if ($filterStatusPemeriksaan && in_array($filterStatusPemeriksaan, ['Belum Diperiksa', 'Sudah Diperiksa', 'Sedang Diperiksa'])) {
             $queryHariIni->where('status_pemeriksaan', $filterStatusPemeriksaan);
         }
 
@@ -94,7 +95,8 @@ class AdminController extends Controller
         // =======================================================
         // 2. Data Pasien MENDATANG
         // =======================================================
-        $queryMendatang = DataPasien::with(['layanan', 'waktu'])
+        // PERBAIKAN: Menghapus 'layanan' dari with()
+        $queryMendatang = DataPasien::with(['waktu']) 
             ->where('tgl_kunjungan', '>', $today) // Ambil semua data setelah hari ini
             ->orderBy('tgl_kunjungan', 'asc')
             ->orderBy('waktu_id', 'asc');
@@ -110,7 +112,7 @@ class AdminController extends Controller
         }
         
         // Filter Status Pemeriksaan (Mendatang)
-        if ($filterStatusPemeriksaan && in_array($filterStatusPemeriksaan, ['Belum Diperiksa', 'Sudah Diperiksa'])) {
+        if ($filterStatusPemeriksaan && in_array($filterStatusPemeriksaan, ['Belum Diperiksa', 'Sudah Diperiksa', 'Sedang Diperiksa'])) {
             $queryMendatang->where('status_pemeriksaan', $filterStatusPemeriksaan);
         }
 
@@ -123,11 +125,10 @@ class AdminController extends Controller
         
         // Ambil daftar unik tanggal mendatang untuk dropdown filter
         $availableDates = DataPasien::select('tgl_kunjungan')
-                                ->where('tgl_kunjungan', '>', $today)
-                                // Hapus filter status_pemeriksaan di sini agar menampilkan semua tanggal yang tersedia
-                                ->distinct()
-                                ->orderBy('tgl_kunjungan', 'asc')
-                                ->pluck('tgl_kunjungan');
+                                    ->where('tgl_kunjungan', '>', $today)
+                                    ->distinct()
+                                    ->orderBy('tgl_kunjungan', 'asc')
+                                    ->pluck('tgl_kunjungan');
         
         // Definisikan filter saat ini
         $currentFilterDate = $filterDate;
@@ -144,8 +145,8 @@ class AdminController extends Controller
             'availableDates',
             'currentFilterDate',
             'currentFilterStatusBerkas',
-            'currentFilterStatusPemeriksaan', // Kirim ke view
-            'currentFilterNamaPasien' // Kirim ke view
+            'currentFilterStatusPemeriksaan',
+            'currentFilterNamaPasien'
         ));
     }
 
@@ -153,16 +154,23 @@ class AdminController extends Controller
     {
         $admin = Auth::guard('admin')->user();
         
-        // Query Dasar: Ambil semua pasien yang status_pemeriksaan = 'Belum Diperiksa'
-        $queryPasien = DataPasien::with(['layanan', 'waktu'])
-            ->where('status_berkas', 'Belum Diverifikasi')
+        // PERBAIKAN 1: Hapus 'layanan' dari with().
+        // Query Dasar: Ambil semua pasien yang status_berkas = 'Belum Diverifikasi' (Filter default jika tidak ada filter dari request)
+        $queryPasien = DataPasien::with(['waktu'])
             ->orderBy('tgl_kunjungan', 'asc')
             ->orderBy('waktu_id', 'asc');
             
         // --- FILTER STATUS BERKAS ---
         $filterStatusBerkas = $request->query('status_berkas');
+        
+        // Jika tidak ada filter dari request, set default 'Belum Diverifikasi'.
+        // Jika ada filter, terapkan filter tersebut.
         if ($filterStatusBerkas && in_array($filterStatusBerkas, ['Belum Diverifikasi', 'Sudah Diverifikasi'])) {
             $queryPasien->where('status_berkas', $filterStatusBerkas);
+        } else {
+            // Jika tidak ada filter yang diberikan oleh pengguna, tampilkan yang 'Belum Diverifikasi' secara default
+            $queryPasien->where('status_berkas', 'Belum Diverifikasi');
+            $filterStatusBerkas = 'Belum Diverifikasi'; // Set nilai current filter
         }
 
         // --- FILTER KATEGORI PENDAFTARAN ---
@@ -173,18 +181,20 @@ class AdminController extends Controller
 
         $pasienVerifikasi = $queryPasien->get();
         
-        // Ambil daftar unik untuk dropdown filter
+        // PERBAIKAN 2: Mengambil daftar status UNIK dari SEMUA data (tanpa membatasi ke 'Belum Diverifikasi')
+        // agar filter dropdown tetap menampilkan 'Sudah Diverifikasi' jika itu adalah status yang mungkin dicari.
         $availableStatus = DataPasien::select('status_berkas')
-            ->where('status_berkas', 'Belum Diverifikasi')
             ->distinct()
             ->pluck('status_berkas');
 
+        // PERBAIKAN 3: Mengambil daftar KATEGORI UNIK dari SEMUA data (tanpa membatasi status)
         $availableKategori = DataPasien::select('kategori_pendaftaran')
-            ->where('status_berkas', 'Belum Diverifikasi')
+            // Tampilkan semua kategori yang ada di sistem, terlepas dari status berkas saat ini
             ->distinct()
             ->pluck('kategori_pendaftaran');
         
         // Definisikan nilai filter saat ini
+        // Nilai $filterStatusBerkas sudah diatur di logika if/else di atas.
         $currentStatusBerkas = $filterStatusBerkas;
         $currentKategori = $filterKategori;
 
@@ -200,7 +210,8 @@ class AdminController extends Controller
     
     public function getPasienDetail($id)
     {
-        $pasien = DataPasien::with(['layanan', 'waktu'])->findOrFail($id);
+        // PERBAIKAN: Hapus 'layanan' dari with(). Relasi ini sudah tidak ada di model DataPasien.
+        $pasien = DataPasien::with(['waktu'])->findOrFail($id); 
         
         // Format data yang akan dikirim ke JavaScript
         return response()->json([
@@ -213,14 +224,18 @@ class AdminController extends Controller
                 'nomor_hp' => $pasien->nomor_hp ?? '-',
                 'alamat' => $pasien->alamat,
                 'pendamping' => $pasien->pendamping ?? '-',
-                'layanan' => $pasien->layanan->pelayanan ?? 'N/A',
+                
+                // Mengambil nama layanan langsung dari kolom layanan_id
+                'layanan_id' => $pasien->layanan_id, 
+                
+                // Mengambil waktu dari relasi waktu (yang masih ada)
                 'waktu_kunjungan' => $pasien->waktu->jam_mulai . ' - ' . $pasien->waktu->jam_selesai,
+                
                 'keluhan' => $pasien->keluhan,
                 'kategori_pendaftaran' => $pasien->kategori_pendaftaran,
                 'tgl_kunjungan' => Carbon::parse($pasien->tgl_kunjungan)->isoFormat('D MMMM YYYY'),
                 'status_pemeriksaan' => $pasien->status_pemeriksaan,
                 'status_berkas' => $pasien->status_berkas,
-                // Tambahkan field lain sesuai kebutuhan
             ]
         ]);
     }
@@ -440,7 +455,8 @@ class AdminController extends Controller
 
     public function riwayatPasien(Request $request)
     {
-        $query = DataPasien::with(['layanan', 'dokter']);
+        // PERBAIKAN: Hapus relasi 'layanan' dari with().
+        $query = DataPasien::with(['dokter']);
 
         // Filter Tanggal Mulai
         if ($request->filled('start_date')) {
@@ -478,8 +494,9 @@ class AdminController extends Controller
      */
     public function getDetailPasien($id)
     {
-        // Admin dapat melihat semua pasien, tidak perlu filter user_id
-        $pasien = DataPasien::with(['layanan', 'waktu', 'dokter'])->findOrFail($id);
+        // PERBAIKAN 1: Hapus 'layanan' dari with() karena layanan_id kini menyimpan STRING.
+        // Relasi yang dipanggil: 'waktu' dan 'dokter'.
+        $pasien = DataPasien::with(['waktu', 'dokter'])->findOrFail($id);
 
         $data = [
             'nomor_antrian' => $pasien->nomor_antrian,
@@ -490,11 +507,18 @@ class AdminController extends Controller
             'alamat' => $pasien->alamat,
             'pendamping' => $pasien->pendamping ?? '-',
             'kategori_pendaftaran' => $pasien->kategori_pendaftaran,
-            'layanan' => $pasien->layanan->pelayanan ?? 'N/A',
-            // Tambahkan nama dokter yang menangani
+            
+            // PERBAIKAN 2: Ambil nama layanan langsung dari kolom layanan_id
+            'layanan' => $pasien->layanan_id ?? 'N/A', 
+            
+            // Menggunakan properti dokter_nama dari objek $data (agar bisa diakses di JS)
             'dokter_nama' => $pasien->dokter->nama_dokter ?? 'Belum Ditentukan', 
+            
             'tgl_kunjungan' => Carbon::parse($pasien->tgl_kunjungan)->isoFormat('D MMM YYYY'),
+            
+            // Mengambil jam kunjungan dari relasi waktu
             'waktu_kunjungan' => ($pasien->waktu->jam_mulai ?? '-') . ' - ' . ($pasien->waktu->jam_selesai ?? '-'),
+            
             'keluhan' => $pasien->keluhan,
             'status_pemeriksaan' => $pasien->status_pemeriksaan,
             'status_berkas' => $pasien->status_berkas,

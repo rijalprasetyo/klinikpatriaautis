@@ -4,13 +4,18 @@
 
 @php
     $isSktm = ($kategori === 'Disabilitas (Dengan SKTM)');
+    $isNonSktm = ($kategori === 'Disabilitas (Non-SKTM)');
     $isMasyarakatUmum = ($kategori === 'Masyarakat Umum');
     
+    // Asumsi biaya tetap sesuai kategori
+    $biaya = ($isSktm || $isNonSktm) ? 30000 : 80000;
+    // Pengecekan biaya lama (Disabilitas SKTM: 30k, Non-SKTM/Umum: 80k)
+    // Di kode Anda, SKTM 30k, lainnya 80k. Kita ikuti logika Anda yang awal:
     $biaya = $isSktm ? 30000 : 80000;
     $biayaFormatted = 'Rp ' . number_format($biaya, 0, ',', '.');
-    $rekeningNumber = '1234-567-890';
-    $rekeningBank = 'Bank Mandiri/BCA/BNI';
-    $rekeningName = 'RSUD Contoh Jaya';
+    $rekeningNumber = '3680578094';
+    $rekeningBank = 'Bank BCA';
+    $rekeningName = 'Dihanusa Tyasahita';
 @endphp
 
 <style>
@@ -558,25 +563,38 @@
                 <input type="text" name="pendamping" class="form-control" value="{{ old('pendamping') }}" required>
             </div>
 
-            {{-- DETAIL LAYANAN --}}
+            {{-- DETAIL LAYANAN (MODIFIED) --}}
             <h4 class="form-section-title">Detail Layanan & Kunjungan</h4>
 
-            @if ($isMasyarakatUmum)
-            <div class="alert alert-light border">
-                <i class="fa-solid fa-circle-info me-1"></i> Layanan akan diatur sebagai **Non-Disabilitas** secara otomatis.
-            </div>
-            <input type="hidden" name="layanan_id" id="layanan_id" value="">
-            @else
+            @if (!$isMasyarakatUmum)
+            {{-- KATEGORI DISABILITAS (SKTM / NON-SKTM) --}}
             <div class="mb-3">
                 <label class="form-label">Jenis Disabilitas / Layanan</label>
-                <select name="layanan_id" id="layanan_id" class="form-select" required>
+                <select id="layanan_select" name="layanan_select" class="form-select" required>
                     <option value="">-- Pilih Layanan --</option>
                     @foreach ($jenisPelayanan as $layanan)
-                        <option value="{{ $layanan->id }}" {{ old('layanan_id') == $layanan->id ? 'selected' : '' }}>{{ $layanan->pelayanan }}</option>
+                        {{-- Menggunakan nama layanan sebagai value, bukan ID --}}
+                        <option value="{{ $layanan->pelayanan }}" {{ old('layanan_select') == $layanan->pelayanan ? 'selected' : '' }}>{{ $layanan->pelayanan }}</option>
                     @endforeach
+                    <option value="Lainnya" {{ old('layanan_select') == 'Lainnya' ? 'selected' : '' }}>Lainnya (Tulis Manual)</option>
                 </select>
             </div>
+            
+            <div class="mb-3" id="layanan_manual_group" style="display: {{ old('layanan_select') == 'Lainnya' ? 'block' : 'none' }};">
+                <label class="form-label">Jenis Layanan Lainnya (Tulis Manual)</label>
+                {{-- Input tersembunyi yang akan dikirim ke controller untuk layanan_id --}}
+                <input type="text" id="layanan_manual_input" name="layanan_id" class="form-control" value="{{ old('layanan_id') }}">
+            </div>
+
+            @else
+            {{-- KATEGORI MASYARAKAT UMUM --}}
+            <div class="mb-3">
+                <label class="form-label">Jenis Layanan (Tulis Manual)</label>
+                {{-- Input utama untuk Masyarakat Umum --}}
+                <input type="text" id="layanan_manual_input_umum" name="layanan_id" class="form-control" value="{{ old('layanan_id') }}" placeholder="Contoh: Fisioterapi Nyeri Lutut / Umum" required>
+            </div>
             @endif
+
 
             <div class="mb-3">
                 <label class="form-label">Keluhan Utama</label>
@@ -708,7 +726,7 @@
     </div>
 </div>
 
-{{-- MODAL PEMBAYARAN --}}
+{{-- MODAL PEMBAYARAN (TIDAK BERUBAH) --}}
 <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-md modal-dialog-centered">
     <div class="modal-content rounded-3 shadow">
@@ -769,6 +787,7 @@
                 <tr><th>Nomor HP</th><td id="c_nomor_hp"></td></tr>
                 <tr><th>Alamat</th><td id="c_alamat"></td></tr>
                 <tr><th>Pendamping</th><td id="c_pendamping"></td></tr>
+                {{-- LAYANAN TIDAK MENGGUNAKAN ID LAGI --}}
                 <tr><th>Layanan</th><td id="c_layanan_id"></td></tr>
                 <tr><th>Keluhan</th><td id="c_keluhan"></td></tr>
                 <tr><th>Tanggal Kunjungan</th><td id="c_tgl_kunjungan"></td></tr>
@@ -804,6 +823,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const isSktmCategory = @json($isSktm);
     const isMasyarakatUmum = @json($isMasyarakatUmum);
 
+    // BARU: Elemen untuk Layanan (Jika bukan Masyarakat Umum)
+    const layananSelect = document.getElementById('layanan_select');
+    const layananManualGroup = document.getElementById('layanan_manual_group');
+    const layananManualInput = document.getElementById('layanan_manual_input');
+    // BARU: Elemen untuk Layanan (Jika Masyarakat Umum)
+    const layananManualInputUmum = document.getElementById('layanan_manual_input_umum');
+
     // Input file tersembunyi
     const buktiPembayaranInput = document.getElementById('bukti_pembayaran_input');
     const sktmInput = isSktmCategory ? document.getElementById('sktm_input') : null;
@@ -823,9 +849,37 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let paymentModalOpened = false;
 
-    // --- FILE UPLOAD HANDLERS ---
+    // --- LOGIC LAYANAN (BARU/MODIFIKASI) ---
+    if (!isMasyarakatUmum) {
+        layananSelect.addEventListener('change', function() {
+            if (this.value === 'Lainnya') {
+                layananManualGroup.style.display = 'block';
+                layananManualInput.setAttribute('required', 'required');
+                layananManualInput.focus();
+                // Kosongkan input manual jika pengguna kembali memilih dari daftar
+                layananManualInput.value = ''; 
+            } else {
+                layananManualGroup.style.display = 'none';
+                layananManualInput.removeAttribute('required');
+                // Masukkan nilai select ke input tersembunyi layanan_id
+                layananManualInput.value = this.value; 
+            }
+        });
+
+        // Set initial value for hidden input on page load/old input
+        if (layananSelect.value && layananSelect.value !== 'Lainnya') {
+            layananManualInput.value = layananSelect.value;
+        }
+
+    } else {
+        // Logika Masyarakat Umum: hanya input manual yang digunakan, sudah dinamai 'layanan_id'
+        // Cukup memastikan input ini required jika kategori Masyarakat Umum (sudah dilakukan di HTML)
+    }
+
+    // --- FILE UPLOAD HANDLERS (TIDAK BERUBAH) ---
     
     function setupFileUpload(uploadZone, input, preview, fileNameEl, fileSizeEl) {
+        // ... (fungsi setupFileUpload tidak berubah) ...
         // Click to upload
         uploadZone.addEventListener('click', () => input.click());
 
@@ -918,7 +972,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // --- PROGRESS TRACKING ---
+    // --- PROGRESS TRACKING (TIDAK BERUBAH) ---
     
     function updateProgress(stepNumber) {
         // Remove all active/completed states
@@ -956,7 +1010,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // --- COPY REKENING FUNCTION ---
+    // --- COPY REKENING FUNCTION (TIDAK BERUBAH) ---
     
     window.copyRekening = function() {
         const rekeningNumber = document.getElementById('rekeningNumberDisplay').getAttribute('data-number');
@@ -1023,7 +1077,7 @@ document.addEventListener('DOMContentLoaded', function() {
     `;
     document.head.appendChild(style);
 
-    // --- DATE & TIME VALIDATION ---
+    // --- DATE & TIME VALIDATION (TIDAK BERUBAH) ---
     
     function checkWaktuAvailability() {
         const today = new Date();
@@ -1043,7 +1097,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             const jamText = option.getAttribute('data-jam');
-            const jamMulaiStr = jamText.split(' - ')[0]; 
+            const jamMulaiStr = jamText.split(' - ')[0];  
             const jamMulai = parseInt(jamMulaiStr.split(':')[0]); 
 
             if (isToday) {
@@ -1101,19 +1155,48 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setTanggalKunjunganConstraint();
 
-    // --- UTILITY FUNCTIONS ---
+    // --- UTILITY FUNCTIONS (MODIFIED) ---
 
     function getLayananText() {
         if (isMasyarakatUmum) {
-            return 'Masyarakat Umum (Layanan Non-Disabilitas)';
+            // Ambil langsung dari input manual Masyarakat Umum
+            return layananManualInputUmum.value || 'N/A (Masyarakat Umum)'; 
         }
-        const layananSelect = document.getElementById('layanan_id');
-        return layananSelect ? layananSelect.options[layananSelect.selectedIndex].text : '';
+        
+        // Logika Disabilitas (Select/Manual)
+        if (layananSelect.value === 'Lainnya') {
+            return layananManualInput.value || 'Lainnya (Belum diisi)';
+        }
+        return layananSelect.value || 'N/A';
     }
 
-    // --- MODAL KONFIRMASI & SUBMIT ---
+    // --- MODAL KONFIRMASI & SUBMIT (MODIFIED) ---
     
     confirmBtn.addEventListener('click', function() {
+        // Logika validasi untuk layanan
+        let layananOk = true;
+        if (!isMasyarakatUmum) {
+            // Kategori Disabilitas: cek select
+            if (layananSelect.value === '') {
+                layananOk = false;
+                layananSelect.focus();
+                showToast('Mohon pilih jenis Layanan!', 'error');
+            } else if (layananSelect.value === 'Lainnya' && !layananManualInput.value.trim()) {
+                // Jika pilih 'Lainnya' tapi input manual kosong
+                layananOk = false;
+                layananManualInput.focus();
+                showToast('Mohon isi Layanan Manual!', 'error');
+            }
+        } else if (!layananManualInputUmum.value.trim()) {
+            // Kategori Masyarakat Umum: cek input manual
+            layananOk = false;
+            layananManualInputUmum.focus();
+            showToast('Mohon isi jenis Layanan!', 'error');
+        }
+
+        if (!layananOk) return;
+
+
         if (!form.checkValidity()) {
             form.classList.add('was-validated');
             const invalidInput = form.querySelector(':invalid');
@@ -1146,13 +1229,30 @@ document.addEventListener('DOMContentLoaded', function() {
         const formData = new FormData(form);
         const selectedWaktuOption = waktuSelect.options[waktuSelect.selectedIndex];
 
+        // LOGIKA BARU UNTUK MENGISI NILAI LAYANAN_ID DI FORM SEBELUM SUBMIT
+        if (!isMasyarakatUmum) {
+            // Kategori Disabilitas
+            if (layananSelect.value !== 'Lainnya') {
+                // Jika bukan 'Lainnya', set nilai input hidden layanan_id = nilai select
+                layananManualInput.value = layananSelect.value;
+            }
+            // Jika 'Lainnya', nilai layanan_id sudah diambil dari layananManualInput
+        } else {
+            // Kategori Masyarakat Umum
+            // Nilai layanan_id sudah ada di layananManualInputUmum.value
+        }
+
+
         document.getElementById('c_nama_pasien').textContent = formData.get('nama_pasien');
         document.getElementById('c_tgl_lahir').textContent = formData.get('tgl_lahir');
         document.getElementById('c_jenis_kelamin').textContent = formData.get('jenis_kelamin');
         document.getElementById('c_nomor_hp').textContent = formData.get('nomor_hp');
         document.getElementById('c_alamat').textContent = formData.get('alamat');
         document.getElementById('c_pendamping').textContent = formData.get('pendamping');
+        
+        // Gunakan fungsi getLayananText yang sudah diperbarui
         document.getElementById('c_layanan_id').textContent = getLayananText(); 
+        
         document.getElementById('c_keluhan').textContent = formData.get('keluhan');
         document.getElementById('c_tgl_kunjungan').textContent = formData.get('tgl_kunjungan');
         document.getElementById('c_waktu_id').textContent = selectedWaktuOption.getAttribute('data-jam');
@@ -1169,6 +1269,16 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Mengirim...';
         submitBtn.disabled = true;
         confirmModal.hide();
+
+        // Final check untuk memastikan layanan_id terisi dengan string yang benar
+        if (!isMasyarakatUmum) {
+             if (layananSelect.value !== 'Lainnya') {
+                document.getElementById('layanan_manual_input').value = layananSelect.value;
+            }
+        } else {
+            // Tidak perlu aksi tambahan, karena nama input sudah benar: layanan_id
+        }
+
         form.submit();
     });
 });

@@ -41,16 +41,18 @@ class UserController extends Controller
     {
         $user = Auth::user(); 
 
-        $jadwal = DataPasien::with(['waktu', 'layanan'])
+        // Relasi 'layanan' dihapus dari 'with()' karena layanan_id kini menyimpan STRING (nama layanan), bukan foreign key.
+        $jadwal = DataPasien::with(['waktu']) 
             ->where('user_id', $user->id)
             ->whereIn('status_pemeriksaan', ['Belum Diperiksa', 'Sedang Diperiksa'])
             ->orderBy('tgl_kunjungan', 'asc')
             ->get();
 
         $jam_operasional = JamPelayanan::all();
-        $layanan = JenisPelayanan::all();
+        // Mengubah nama variabel dari $layanan menjadi $jenis_layanan
+        $jenis_layanan = JenisPelayanan::all(); 
 
-        return view('home', compact('user', 'jadwal', 'jam_operasional', 'layanan'));
+        return view('home', compact('user', 'jadwal', 'jam_operasional', 'jenis_layanan'));
     }
 
     public function success($antrian, Request $request)
@@ -68,21 +70,11 @@ class UserController extends Controller
     {
         $kategori = $request->query('kategori', 'Masyarakat Umum');
         
-        // Ambil semua jenis pelayanan
-        $semuaJenisPelayanan = JenisPelayanan::all();
+        // Ambil semua jenis pelayanan. Tidak perlu filtering ID 1.
+        $jenisPelayanan = JenisPelayanan::all();
         $jamPelayanan = JamPelayanan::all();
 
-        // Filter jenis pelayanan jika kategori BUKAN Masyarakat Umum
-        if ($kategori !== 'Masyarakat Umum') {
-            // Hapus layanan dengan ID 1 ("Non-Disabilitas")
-            $jenisPelayanan = $semuaJenisPelayanan->filter(function ($layanan) {
-                return $layanan->id != 1;
-            });
-        } else {
-            // Jika Masyarakat Umum, kita tidak peduli karena select-nya tersembunyi
-            $jenisPelayanan = $semuaJenisPelayanan;
-        }
-
+        // Pastikan variabel yang dikirim ke view benar
         return view('create', compact('kategori', 'jenisPelayanan', 'jamPelayanan'));
     }
 
@@ -103,19 +95,22 @@ class UserController extends Controller
             'kategori' => 'required|string|max:255',
         ];
         
-        // Validasi kondisional berdasarkan kategori
-        if ($request->kategori === 'Disabilitas (Dengan SKTM)') {
-            // Wajib untuk SKTM
-            $rules['layanan_id'] = 'required|integer';
-            $rules['sktm'] = 'required|file|mimes:jpg,png,pdf|max:1024';
-        } elseif ($request->kategori === 'Disabilitas (Non-SKTM)') {
-            // Wajib untuk Non-SKTM (meski SKTM tidak wajib)
-            $rules['layanan_id'] = 'required|integer';
+        // Validasi kondisional berdasarkan kategori (layanan_id sekarang adalah STRING NAMA LAYANAN)
+        if ($request->kategori === 'Masyarakat Umum') {
+            // Masyarakat Umum: Wajib isi input manual layanan_id (string)
+            $rules['layanan_id'] = 'required|string|max:255'; 
             $rules['sktm'] = 'nullable|file|mimes:jpg,png,pdf|max:1024';
         } else {
-            // Untuk Masyarakat Umum
-            $rules['layanan_id'] = 'nullable|integer';
-            $rules['sktm'] = 'nullable|file|mimes:jpg,png,pdf|max:1024';
+            // Disabilitas (SKTM / Non-SKTM): Wajib isi layanan_id (string, dari select atau manual)
+            // Kita gunakan nama input yang dikirim dari form (layanan_id)
+            $rules['layanan_id'] = 'required|string|max:255'; 
+            
+            // SKTM wajib upload
+            if ($request->kategori === 'Disabilitas (Dengan SKTM)') {
+                $rules['sktm'] = 'required|file|mimes:jpg,png,pdf|max:1024';
+            } else {
+                $rules['sktm'] = 'nullable|file|mimes:jpg,png,pdf|max:1024';
+            }
         }
 
         try {
@@ -139,12 +134,9 @@ class UserController extends Controller
                 return back()->with('error', 'Pendaftaran gagal! Kuota pasien untuk jam tersebut pada tanggal ini sudah penuh (Max ' . $kuotaMax . ' orang). Mohon pilih jam atau tanggal lain.')->withInput();
             }
 
-            // --- 3. Tentukan Layanan ID ---
-            $layananId = $request->layanan_id;
-            if ($request->kategori === 'Masyarakat Umum') {
-                // HANYA UNTUK MASYARAKAT UMUM: Set ID Layanan secara otomatis (ASUMSI: ID 1)
-                $layananId = 1; 
-            }
+            // --- 3. Tentukan Nama Layanan ---
+            // $request->layanan_id sudah berisi nama layanan (string) dari input form.
+            $layananNama = $request->layanan_id;
 
             // --- 4. Proses Penyimpanan Data ---
             
@@ -168,7 +160,8 @@ class UserController extends Controller
                 'alamat' => $request->alamat,
                 'pendamping' => $request->pendamping,
                 'kategori_pendaftaran' => $request->kategori,
-                'layanan_id' => $layananId,
+                // Perubahan: Simpan nama layanan (string) ke kolom layanan_id
+                'layanan_id' => $layananNama, 
                 'waktu_id' => $request->waktu_id,
                 'keluhan' => $request->keluhan,
                 'tgl_kunjungan' => $request->tgl_kunjungan,
@@ -190,7 +183,7 @@ class UserController extends Controller
 
         } catch (\Exception $e) {
             if ($e instanceof \Illuminate\Validation\ValidationException) {
-                 return back()->withErrors($e->errors())->withInput();
+                return back()->withErrors($e->errors())->withInput();
             }
             return back()->with('error', 'Terjadi kesalahan sistem: ' . $e->getMessage())->withInput();
         }
@@ -199,7 +192,8 @@ class UserController extends Controller
 
     public function downloadPdf($id)
     {
-        $pasien = DataPasien::with(['layanan', 'waktu'])->findOrFail($id);
+        // Relasi 'layanan' dihapus dari 'with()'
+        $pasien = DataPasien::with(['waktu'])->findOrFail($id);
         
         // Buat ID unik untuk nama file
         $tglKunjungan = Carbon::parse($pasien->tgl_kunjungan);
@@ -207,6 +201,8 @@ class UserController extends Controller
         $uniquePendaftaranId = $datePrefix . $pasien->nomor_antrian;
 
         // Generate PDF on the fly (TIDAK DISIMPAN DI SERVER)
+        // Catatan: Jika di file 'pdf.pendaftaran' Anda masih mengakses $pasien->layanan->pelayanan,
+        // Anda harus mengubahnya menjadi $pasien->layanan_id.
         $pdf = Pdf::loadView('pdf.pendaftaran', compact('pasien'));
         
         $fileName = 'Tiket_Antrian_' . $uniquePendaftaranId . '.pdf';
@@ -214,6 +210,7 @@ class UserController extends Controller
         // PDF langsung di-download
         return $pdf->download($fileName);
     }
+
     public function biodata()
     {
         $user = Auth::user(); 
@@ -268,11 +265,13 @@ class UserController extends Controller
         }
 
         $userId = Auth::id();
+        
 
         // 1. Ambil data pasien yang user_id-nya sesuai dan statusnya 'Selesai Diperiksa'
+        // KOREKSI: Relasi 'layanan' dihapus. Relasi 'dokter' tetap dipertahankan.
         $dataPasien = DataPasien::where('user_id', $userId)
-            ->where('status_pemeriksaan', 'Selesai Diperiksa') // HANYA STATUS SELESAI
-            ->with(['layanan', 'dokter']) 
+            ->where('status_pemeriksaan', 'Selesai Diperiksa') // HANYA STATUS SELESAI (Ini benar untuk riwayat)
+            ->with(['dokter']) // Memuat relasi dokter (perlu diakses dengan nullsafe di view)
             ->orderBy('tgl_kunjungan', 'desc')
             ->get();
 
@@ -286,30 +285,42 @@ class UserController extends Controller
     {
         $userId = Auth::id();
 
+        // KOREKSI 1: Hapus relasi 'layanan' dari with(). Relasi 'dokter' tetap dipertahankan.
         $pasien = DataPasien::where('id', $id)
-            ->where('user_id', $userId) // Pasien hanya bisa melihat data miliknya
-            ->with(['layanan', 'waktu', 'dokter'])
+            ->where('user_id', $userId) 
+            ->with(['waktu', 'dokter']) // Hapus 'layanan'
             ->first();
 
         if (!$pasien) {
             return response()->json(['message' => 'Data tidak ditemukan.'], 404);
         }
 
+        // KOREKSI 2: Gunakan null coalescing operator (??) untuk menangani NULL relasi.
+        $dokterNama = $pasien->dokter->nama_dokter ?? 'Belum Ditentukan';
+        $layananNama = $pasien->layanan_id ?? 'N/A'; // Ambil langsung dari kolom string
+        $waktuMulai = $pasien->waktu->jam_mulai ?? '-';
+        $waktuSelesai = $pasien->waktu->jam_selesai ?? '-';
+
         // Format data untuk ditampilkan di modal
         $data = [
             'nomor_antrian' => $pasien->nomor_antrian,
-            'nama_pasien' => $pasien->nama_pasien, // Ditambahkan kembali untuk detail
+            'nama_pasien' => $pasien->nama_pasien,
             'tgl_lahir' => Carbon::parse($pasien->tgl_lahir)->isoFormat('D MMMM YYYY'),
             'jenis_kelamin' => $pasien->jenis_kelamin,
             'nomor_hp' => $pasien->nomor_hp ?? '-',
             'alamat' => $pasien->alamat,
             'pendamping' => $pasien->pendamping ?? '-',
             'kategori_pendaftaran' => $pasien->kategori_pendaftaran,
-            'layanan' => $pasien->layanan->pelayanan ?? 'N/A',
-            // Tambahkan nama dokter yang menangani
-            'dokter_nama' => $pasien->dokter->nama_dokter ?? 'Belum Ditentukan', 
+            
+            // KOREKSI 3: Gunakan variabel yang sudah diolah (layanan string)
+            'layanan' => $layananNama, 
+            
+            // Gunakan variabel dokter_nama yang sudah diolah
+            'dokter_nama' => $dokterNama, 
+            
             'tgl_kunjungan' => Carbon::parse($pasien->tgl_kunjungan)->isoFormat('D MMMM YYYY'),
-            'waktu_kunjungan' => ($pasien->waktu->jam_mulai ?? '-') . ' - ' . ($pasien->waktu->jam_selesai ?? '-'),
+            'waktu_kunjungan' => "{$waktuMulai} - {$waktuSelesai}", // Gunakan variabel yang sudah diolah
+            
             'keluhan' => $pasien->keluhan,
             'status_pemeriksaan' => $pasien->status_pemeriksaan,
             'status_berkas' => $pasien->status_berkas,

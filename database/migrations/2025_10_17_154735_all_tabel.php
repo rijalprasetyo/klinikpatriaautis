@@ -34,6 +34,7 @@ return new class extends Migration
             $table->string('alamat')->nullable();
             $table->string('password');
             $table->string('no_hp')->nullable();
+            $table->string('role')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
@@ -172,7 +173,6 @@ return new class extends Migration
         });
 
         DB::table('jenis_pelayanan')->insert([
-            ['pelayanan' => 'Non-Disabilitas', 'icon_pelayanan' => 'Non-Disabilitas.jpg'],
             ['pelayanan' => 'Autism Spectrum Disorder', 'icon_pelayanan' => 'Autism.jpg'],
             ['pelayanan' => 'Cerebral Palsy', 'icon_pelayanan' => 'Cerebral.jpg'],
             ['pelayanan' => 'Down Syndrome', 'icon_pelayanan' => 'down.jpg'],
@@ -194,7 +194,7 @@ return new class extends Migration
             $table->text('alamat')->nullable();
             $table->string('pendamping')->nullable();
             $table->string('kategori_pendaftaran')->nullable();
-            $table->foreignId('layanan_id')->constrained('jenis_pelayanan')->onDelete('cascade');
+            $table->string('layanan_id')->nullable();
             $table->foreignId('waktu_id')->constrained('jam_pelayanan')->onDelete('cascade');
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->text('keluhan')->nullable();

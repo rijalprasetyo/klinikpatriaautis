@@ -65,6 +65,7 @@ Route::middleware('auth:admin')->group(function () {
     Route::get('/admin/pasien/{id}/detail', [AdminController::class, 'getDetailPasien'])->name('admin.pasien.detail');
     Route::get('/admin/pasien/{id}/catatan', [AdminController::class, 'getCatatan'])->name('admin.pasien.get-catatan');
     Route::post('/admin/data-backup', [DataBackupKontroler::class, 'backup'])->name('admin.data-backup.store');
+    Route::post('/admin/data-backup/reset', [DataBackupKontroler::class, 'resetSystem'])->name('admin.data-backup.reset');
 });
 
 // DOKTER

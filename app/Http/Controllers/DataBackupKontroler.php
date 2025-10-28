@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\DataBackup;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\DB;
+use App\Models\DataPasien;
 
 class DataBackupKontroler extends Controller
 {
@@ -65,4 +67,49 @@ class DataBackupKontroler extends Controller
 
         return redirect()->back()->with('success', 'Backup berhasil dibuat dan disimpan di C:\\Backupdata\\');
     }
+
+    public function resetSystem()
+    {
+        $admin = Auth::guard('admin')->user();
+
+        // Pastikan hanya developer yang bisa reset
+        if (!$admin || $admin->role !== 'developer') {
+            abort(403, 'Anda tidak memiliki izin untuk melakukan reset sistem.');
+        }
+
+        try {
+            // Matikan foreign key sementara agar truncate tidak error
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+
+            // Hapus semua data pasien
+            DataPasien::truncate();
+
+            // Aktifkan kembali foreign key
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
+            // Lokasi folder tempat file pasien tersimpan
+            $buktiPembayaranPath = storage_path('app/public/bukti_pembayaran');
+            $sktmPath = storage_path('app/public/sktm');
+            $videoBeforePath = storage_path('app/public/video_before');
+            $videoAfterPath = storage_path('app/public/video_after');
+
+            // Hapus semua folder yang berisi file pasien
+            File::deleteDirectory($buktiPembayaranPath);
+            File::deleteDirectory($sktmPath);
+            File::deleteDirectory($videoBeforePath);
+            File::deleteDirectory($videoAfterPath);
+
+            // Buat ulang folder agar tidak error di upload berikutnya
+            File::makeDirectory($buktiPembayaranPath, 0775, true);
+            File::makeDirectory($sktmPath, 0775, true);
+            File::makeDirectory($videoBeforePath, 0775, true);
+            File::makeDirectory($videoAfterPath, 0775, true);
+
+            return redirect()->back()->with('success', '✅ Sistem berhasil direset! Semua data pasien dan file terkait telah dihapus.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat reset sistem: ' . $e->getMessage());
+        }
+    }
+
+
 }

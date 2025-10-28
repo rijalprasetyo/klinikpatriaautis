@@ -278,6 +278,7 @@
                                 <th>Kategori</th>
                                 <th>Layanan</th>
                                 <th>Waktu</th>
+                                <th>Dokter</th>
                                 <th>Status Periksa</th>
                                 <th style="width: 25%;">Aksi</th> {{-- Lebar aksi ditambah --}}
                             </tr>
@@ -291,7 +292,10 @@
                                     <td class="fw-bold">{{ $pasien->nomor_antrian }}</td>
                                     <td>{{ $pasien->nama_pasien }}</td>
                                     <td>{{ $pasien->kategori_pendaftaran }}</td>
-                                    <td>{{ $pasien->layanan->pelayanan ?? '-' }}</td>
+                                    
+                                    {{-- KOREKSI: Ambil nama layanan dari kolom layanan_id (string) --}}
+                                    <td>{{ $pasien->layanan_id ?? '-' }}</td> 
+                                    
                                     <td>{{ $pasien->waktu->jam_mulai ?? '-' }} - {{ $pasien->waktu->jam_selesai ?? '-' }}</td>
                                     <td>
                                         {{-- LOGIKA WARNA BADGE STATUS PEMERIKSAAN --}}
@@ -307,6 +311,7 @@
                                             {{ $pasien->status_pemeriksaan }}
                                         </span>
                                     </td>
+                                    <td>{{ $pasien->dokter->nama_dokter ?? '-' }}</td>
                                     <td>
                                         {{-- Tombol Aksi Detail --}}
                                         <button class="btn btn-sm btn-info text-white me-1 btn-detail btn-action-icon" data-id="{{ $pasien->id }}" title="Detail Pasien">
@@ -320,17 +325,17 @@
                                         
                                         {{-- Tombol Unggah/Lihat Video --}}
                                         <button class="btn btn-sm btn-primary me-1 btn-video btn-action-icon" 
-                                                data-id="{{ $pasien->id }}" 
-                                                data-video-before="{{ $pasien->video_before ? asset('storage/' . $pasien->video_before) : '' }}" 
-                                                data-video-after="{{ $pasien->video_after ? asset('storage/' . $pasien->video_after) : '' }}" 
-                                                title="Unggah/Lihat Video">
+                                                    data-id="{{ $pasien->id }}" 
+                                                    data-video-before="{{ $pasien->video_before ? asset('storage/' . $pasien->video_before) : '' }}" 
+                                                    data-video-after="{{ $pasien->video_after ? asset('storage/' . $pasien->video_after) : '' }}" 
+                                                    title="Unggah/Lihat Video">
                                             <i class="fa-solid fa-video"></i>
                                         </button>
 
                                         {{-- Tombol Tambah/Edit Catatan --}}
                                         <button class="btn btn-sm btn-success btn-catatan btn-action-icon" 
-                                                data-id="{{ $pasien->id }}" 
-                                                title="Tambah/Edit Catatan Pemeriksaan/Obat">
+                                                    data-id="{{ $pasien->id }}" 
+                                                    title="Tambah/Edit Catatan Pemeriksaan/Obat">
                                             <i class="fa-solid fa-notes-medical"></i>
                                         </button>
                                     </td>
@@ -652,7 +657,6 @@
 
         // Ambil nama dokter yang login dari hidden input dan tampilkan di modal status
         const dokterLoginNama = document.getElementById('dokter-login-nama').value; 
-        // Note: Ini diisi di modal status saat diklik, bukan di DOMContentLoaded
         
         // --- SETUP TABS & FILTERS ---
         document.getElementById('loading-today').style.display = 'none';
@@ -719,7 +723,12 @@
                 detailModal.show();
 
                 fetch(detailUrlTemplate.replace('PASIEN_ID', pasienId))
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
                     .then(data => {
                         const d = data.data;
                         document.getElementById('detail-antrian').textContent = d.nomor_antrian;
@@ -729,11 +738,14 @@
                         document.getElementById('detail-pendamping').textContent = d.pendamping;
                         document.getElementById('detail-tgl-kunjungan').textContent = d.tgl_kunjungan;
                         document.getElementById('detail-waktu').textContent = d.waktu_kunjungan;
-                        document.getElementById('detail-layanan').textContent = d.layanan;
+                        
+                        // KOREKSI JAVASCRIPT: Ambil dari d.layanan (properti yang disiapkan di controller)
+                        document.getElementById('detail-layanan').textContent = d.layanan; 
+                        
                         document.getElementById('detail-kategori').textContent = d.kategori_pendaftaran;
                         
                         // Isi nama dokter penanggung jawab
-                        document.getElementById('detail-dokter').textContent = d.dokter_penanggung_jawab || 'Belum Ditentukan'; 
+                        document.getElementById('detail-dokter').textContent = d.dokter_nama || 'Belum Ditentukan'; 
 
                         document.getElementById('detail-alamat').textContent = d.alamat;
                         document.getElementById('detail-keluhan').textContent = d.keluhan;
@@ -745,7 +757,7 @@
                     })
                     .catch(error => {
                         console.error('Error fetching detail:', error);
-                        alert('Gagal mengambil detail pasien.');
+                        alert('Gagal mengambil detail pasien. Periksa log server (Controller Detail).');
                         detailModal.hide();
                     });
             });
@@ -779,7 +791,7 @@
                         document.getElementById('form-status-pemeriksaan').action = updatePemeriksaanUrlTemplate.replace('PASIEN_ID', pasienId);
                         
                         // Tampilkan nama dokter penanggung jawab dari data pasien
-                        document.getElementById('current-dokter-text').textContent = d.dokter_penanggung_jawab || 'Belum Ditentukan';
+                        document.getElementById('current-dokter-text').textContent = d.dokter_nama || 'Belum Ditentukan'; // Menggunakan d.dokter_nama
                         
                         // Tampilkan status saat ini
                         document.getElementById('current-status-text').textContent = d.status_pemeriksaan;

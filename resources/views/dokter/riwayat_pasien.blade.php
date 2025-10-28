@@ -220,7 +220,7 @@
                             <td class="fw-bold">{{ $index + 1 }}</td>
                             <td>{{ $pasien->nama_pasien }}</td>
                             <td>{{ $pasien->kategori_pendaftaran }}</td>
-                            <td>{{ $pasien->layanan->pelayanan ?? '-' }}</td>
+                            <td>{{ $pasien->layanan_id ?? '-' }}</td>
                             <td>{{ \Carbon\Carbon::parse($pasien->tgl_kunjungan)->isoFormat('D MMM YYYY') }}</td>
                             <td>{{ $pasien->dokter->nama_dokter ?? '-' }}</td> {{-- Menampilkan nama Dokter --}}
                             <td>

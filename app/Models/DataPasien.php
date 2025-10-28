@@ -41,13 +41,6 @@ class DataPasien extends Model
     {
         return $this->belongsTo(User::class);
     }
-
-    // Relasi ke jenis pelayanan
-    public function layanan()
-    {
-        return $this->belongsTo(JenisPelayanan::class, 'layanan_id');
-    }
-
     // Relasi ke jam pelayanan
     public function waktu()
     {

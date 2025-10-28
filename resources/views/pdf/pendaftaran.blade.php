@@ -120,7 +120,7 @@
             {{-- Asumsi $pasien->jam_kunjungan tersedia dan berisi teks jam (misal: 09:00 - 10:00) --}}
             {{-- Jika tidak ada, ganti $pasien->jam_kunjungan dengan variabel jam yang benar --}}
             <tr><th>Jam Kunjungan</th><td>{{ $pasien->waktu ? $pasien->waktu->jam_mulai . ' - ' . $pasien->waktu->jam_selesai : 'Tidak diketahui' }}</td></tr>
-            <tr><th>Jenis Layanan</th><td>{{ $pasien->layanan->pelayanan ?? 'N/A' }}</td></tr>
+            <tr><th>Jenis Layanan</th><td>{{ $pasien->layanan_id ?? 'N/A' }}</td></tr>
             <tr><th>Keluhan Utama</th><td>{{ $pasien->keluhan }}</td></tr>
         </tbody>
     </table>

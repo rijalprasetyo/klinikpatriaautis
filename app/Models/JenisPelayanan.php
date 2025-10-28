@@ -15,9 +15,4 @@ class JenisPelayanan extends Model
         'pelayanan',
         'icon_pelayanan',
     ];
-
-    public function pasien()
-    {
-        return $this->hasMany(DataPasien::class, 'layanan_id');
-    }
 }

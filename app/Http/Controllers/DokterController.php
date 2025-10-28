@@ -70,25 +70,31 @@ class DokterController extends Controller
     public function dataPasienScheduled(Request $request)
     {
         $dokter = Auth::guard('dokter')->user();
+        // $dokterId = $dokter->id; // DIHAPUS karena permintaan menampilkan semua data
         
         $today = Carbon::today()->toDateString();
         
         // Ambil nilai filter dari request
         $filterDate = $request->query('date');
         $filterStatusBerkas = $request->query('status_berkas');
-        $filterStatusPemeriksaan = $request->query('status_pemeriksaan'); // Filter baru
-        $filterNamaPasien = $request->query('nama_pasien'); // Filter baru
+        $filterStatusPemeriksaan = $request->query('status_pemeriksaan'); 
+        $filterNamaPasien = $request->query('nama_pasien'); 
 
         // =======================================================
         // 1. Data Pasien HARI INI
         // =======================================================
-        $queryHariIni = DataPasien::with(['layanan', 'waktu'])
+        // KOREKSI: Hapus 'layanan'. Hapus filter dokter_id.
+        $queryHariIni = DataPasien::with(['waktu'])
+            // Hapus: ->where('dokter_id', $dokterId)
             ->whereDate('tgl_kunjungan', $today)
             ->orderBy('waktu_id', 'asc');
 
         // Filter Status Pemeriksaan (Hari Ini)
-        if ($filterStatusPemeriksaan && in_array($filterStatusPemeriksaan, ['Belum Diperiksa', 'Sudah Diperiksa'])) {
+        if ($filterStatusPemeriksaan && in_array($filterStatusPemeriksaan, ['Belum Diperiksa', 'Sedang Diperiksa', 'Selesai Diperiksa'])) {
             $queryHariIni->where('status_pemeriksaan', $filterStatusPemeriksaan);
+        } else {
+            // Default: Tampilkan Belum Diperiksa dan Sedang Diperiksa untuk hari ini
+            $queryHariIni->whereIn('status_pemeriksaan', ['Belum Diperiksa', 'Sedang Diperiksa']);
         }
 
         // Filter Nama Pasien (Hari Ini)
@@ -101,7 +107,9 @@ class DokterController extends Controller
         // =======================================================
         // 2. Data Pasien MENDATANG
         // =======================================================
-        $queryMendatang = DataPasien::with(['layanan', 'waktu'])
+        // KOREKSI: Hapus 'layanan'. Hapus filter dokter_id.
+        $queryMendatang = DataPasien::with(['waktu'])
+            // Hapus: ->where('dokter_id', $dokterId)
             ->where('tgl_kunjungan', '>', $today) // Ambil semua data setelah hari ini
             ->orderBy('tgl_kunjungan', 'asc')
             ->orderBy('waktu_id', 'asc');
@@ -117,7 +125,7 @@ class DokterController extends Controller
         }
         
         // Filter Status Pemeriksaan (Mendatang)
-        if ($filterStatusPemeriksaan && in_array($filterStatusPemeriksaan, ['Belum Diperiksa', 'Sudah Diperiksa'])) {
+        if ($filterStatusPemeriksaan && in_array($filterStatusPemeriksaan, ['Belum Diperiksa', 'Sedang Diperiksa', 'Selesai Diperiksa'])) {
             $queryMendatang->where('status_pemeriksaan', $filterStatusPemeriksaan);
         }
 
@@ -130,11 +138,11 @@ class DokterController extends Controller
         
         // Ambil daftar unik tanggal mendatang untuk dropdown filter
         $availableDates = DataPasien::select('tgl_kunjungan')
-                                ->where('tgl_kunjungan', '>', $today)
-                                // Hapus filter status_pemeriksaan di sini agar menampilkan semua tanggal yang tersedia
-                                ->distinct()
-                                ->orderBy('tgl_kunjungan', 'asc')
-                                ->pluck('tgl_kunjungan');
+            // Hapus: ->where('dokter_id', $dokterId)
+            ->where('tgl_kunjungan', '>', $today)
+            ->distinct()
+            ->orderBy('tgl_kunjungan', 'asc')
+            ->pluck('tgl_kunjungan');
         
         // Definisikan filter saat ini
         $currentFilterDate = $filterDate;
@@ -142,6 +150,9 @@ class DokterController extends Controller
         $currentFilterStatusPemeriksaan = $filterStatusPemeriksaan;
         $currentFilterNamaPasien = $filterNamaPasien;
 
+        if (!$filterStatusPemeriksaan) {
+            $currentFilterStatusPemeriksaan = 'Belum Diperiksa/Sedang Diperiksa';
+        }
         
 
         return view('dokter.data_pasien', compact(
@@ -152,8 +163,8 @@ class DokterController extends Controller
             'availableDates',
             'currentFilterDate',
             'currentFilterStatusBerkas',
-            'currentFilterStatusPemeriksaan', // Kirim ke view
-            'currentFilterNamaPasien' // Kirim ke view
+            'currentFilterStatusPemeriksaan',
+            'currentFilterNamaPasien'
         ));
     }
 
@@ -167,8 +178,8 @@ class DokterController extends Controller
         $filterStatusPemeriksaan = $request->query('status_pemeriksaan');
         $filterNamaPasien = $request->query('nama_pasien');
         
-        // Query dasar
-        $query = DataPasien::with(['layanan', 'waktu'])
+        // KOREKSI: Hapus 'layanan' dari with(). Relasi waktu tetap.
+        $query = DataPasien::with(['waktu'])
             ->orderBy('tgl_kunjungan', 'desc')
             ->orderBy('waktu_id', 'asc');
         
@@ -181,9 +192,15 @@ class DokterController extends Controller
             $query->whereDate('tgl_kunjungan', '<=', $filterEndDate);
         }
         
-        // Filter Status Pemeriksaan
+        // Filter Status Pemeriksaan (KOREKSI LOGIKA)
+        // Jika $filterStatusPemeriksaan tidak kosong, terapkan filter tersebut.
         if ($filterStatusPemeriksaan && in_array($filterStatusPemeriksaan, ['Belum Diperiksa', 'Sedang Diperiksa', 'Selesai Diperiksa'])) {
             $query->where('status_pemeriksaan', $filterStatusPemeriksaan);
+        } else {
+            // Jika filter status kosong, TAMPILKAN SEMUA STATUS.
+            // Kita tidak menambahkan klausa where status_pemeriksaan di sini.
+            // Cukup pastikan variabel filter yang dikirim ke view adalah null/kosong.
+            $filterStatusPemeriksaan = null; // Reset filter yang dikirim ke view jika tujuannya SEMUA
         }
         
         // Filter Nama Pasien
@@ -198,15 +215,21 @@ class DokterController extends Controller
             'dataPasien',
             'filterStartDate',
             'filterEndDate',
-            'filterStatusPemeriksaan',
+            'filterStatusPemeriksaan', // Nilai ini kini bisa null, yang berarti 'Semua Status'
             'filterNamaPasien'
         ));
     }
 
+    // FUNGSI INI ADALAH SUMBER DARI ERROR 500 & JSON PARSE ERROR
     public function getPasienDetail($id)
     {
-        $pasien = DataPasien::with(['layanan', 'waktu'])->findOrFail($id);
-        $dokterPenanggungJawab = $pasien->dokter->nama_dokter ?? 'Belum Ditentukan';
+        // KOREKSI 1: Hapus relasi 'layanan'. Tambahkan relasi 'dokter'.
+        // Jika relasi 'dokter' sudah ada di model, ini akan memuatnya.
+        $pasien = DataPasien::with(['waktu', 'dokter'])->findOrFail($id); 
+        
+        // KOREKSI 2: Menggunakan Null Coalescing Operator (?) untuk Dokter
+        // Mencegah Error 500 jika pasien belum memiliki dokter_id
+        $dokterPenanggungJawab = $pasien->dokter?->nama_dokter ?? 'Belum Ditentukan';
         
         // Format data yang akan dikirim ke JavaScript
         return response()->json([
@@ -219,21 +242,22 @@ class DokterController extends Controller
                 'nomor_hp' => $pasien->nomor_hp ?? '-',
                 'alamat' => $pasien->alamat,
                 'pendamping' => $pasien->pendamping ?? '-',
-                'layanan' => $pasien->layanan->pelayanan ?? 'N/A',
+                
+                // KOREKSI 3: Mengambil nama layanan dari kolom layanan_id (string)
+                'layanan' => $pasien->layanan_id ?? 'N/A', 
+                
                 'waktu_kunjungan' => $pasien->waktu->jam_mulai . ' - ' . $pasien->waktu->jam_selesai,
                 'keluhan' => $pasien->keluhan,
                 'kategori_pendaftaran' => $pasien->kategori_pendaftaran,
                 'tgl_kunjungan' => Carbon::parse($pasien->tgl_kunjungan)->isoFormat('D MMMM YYYY'),
                 'status_pemeriksaan' => $pasien->status_pemeriksaan,
                 'status_berkas' => $pasien->status_berkas,
-                'dokter_penanggung_jawab' => $dokterPenanggungJawab,
+                'dokter_nama' => $dokterPenanggungJawab, // Digunakan di JS sebagai d.dokter_nama
             ]
         ]);
     }
 
-    /**
-     * Memperbarui status berkas pasien.
-     */
+    // --- FUNGSI UPDATE STATUS PEMERIKSAAN ---
     public function updateStatusPemeriksaan(Request $request, $id)
     {
         // 1. Validasi Input
@@ -242,7 +266,6 @@ class DokterController extends Controller
         ]);
 
         // 2. Ambil ID Dokter yang sedang Login
-        // Ini akan mengambil ID dari Model Dokter yang sedang login (ID di tabel 'dokters')
         $dokterId = Auth::id(); 
 
         // 3. Cari Data Pasien
@@ -250,43 +273,39 @@ class DokterController extends Controller
         $newStatus = $request->status_pemeriksaan;
 
         // 4. Logika Penetapan/Penghapusan Dokter
-        
         $statusChangeMessage = "Status pemeriksaan pasien {$pasien->nama_pasien} berhasil diperbarui menjadi '{$newStatus}'.";
 
         if ($newStatus === 'Belum Diperiksa') {
-            // PERMINTAAN: Hapus (set null) dokter_id ketika status direset ke Belum Diperiksa
+            // Hapus (set null) dokter_id ketika status direset ke Belum Diperiksa
             $pasien->dokter_id = null;
             $statusChangeMessage .= " Dokter penanggung jawab telah direset.";
 
         } elseif ($newStatus === 'Sedang Diperiksa' || $newStatus === 'Selesai Diperiksa') {
-            // PERMINTAAN: Tetapkan dokter_id saat status diubah ke Sedang Diperiksa/Selesai Diperiksa.
             
             // HANYA SET jika dokter_id saat ini NULL.
-            // Jika sudah ada dokter yang menangani (dokter_id sudah terisi),
-            // kita tidak menimpanya, kecuali ada logika khusus untuk transfer.
-            
             if (is_null($pasien->dokter_id)) {
                 $pasien->dokter_id = $dokterId;
                 $statusChangeMessage .= " dan sekarang ditangani oleh Anda.";
             }
-            // Jika status Selesai Diperiksa, dokter_id akan tetap dipertahankan
+            // Jika sudah ada dokter yang menangani, dokter_id dipertahankan
         }
 
         // 5. Update Status dan Simpan
         $pasien->status_pemeriksaan = $newStatus;
         $pasien->save();
 
+        // KARENA INI DIPANGGIL OLEH FORM SUBMIT BIASA, RETURN BACK.
         return back()->with('success', $statusChangeMessage);
     }
 
     public function uploadVideos(Request $request, $id)
     {
         $request->validate([
-            'video_before' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/x-flv|max:5120', // Maks 5MB = 5120 KB
-            'video_after' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/x-flv|max:5120', // Maks 5MB
+            'video_before' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/x-flv|max:25600', // Maks 5MB = 5120 KB
+            'video_after' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/x-flv|max:25600', // Maks 5MB
         ], [
-            'video_before.max' => 'Ukuran Video Sebelum Pemeriksaan maksimal 5 MB.',
-            'video_after.max' => 'Ukuran Video Sesudah Pemeriksaan maksimal 5 MB.',
+            'video_before.max' => 'Ukuran Video Sebelum Pemeriksaan maksimal 25 MB.',
+            'video_after.max' => 'Ukuran Video Sesudah Pemeriksaan maksimal 25 MB.',
             'video_before.mimetypes' => 'Format video tidak didukung. Harap unggah MP4 atau MOV.',
             'video_after.mimetypes' => 'Format video tidak didukung. Harap unggah MP4 atau MOV.',
         ]);

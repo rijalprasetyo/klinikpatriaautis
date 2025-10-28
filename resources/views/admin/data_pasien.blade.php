@@ -277,7 +277,7 @@
                                     <td class="fw-bold">{{ $pasien->nomor_antrian }}</td>
                                     <td>{{ $pasien->nama_pasien }}</td>
                                     <td>{{ $pasien->kategori_pendaftaran }}</td>
-                                    <td>{{ $pasien->layanan->pelayanan ?? '-' }}</td>
+                                    <td>{{ $pasien->layanan_id ?? '-' }}</td>
                                     <td>{{ $pasien->waktu->jam_mulai ?? '-' }} - {{ $pasien->waktu->jam_selesai ?? '-' }}</td>
                                     <td>
                                         <span class="badge {{ $pasien->status_berkas == 'Belum Diverifikasi' ? 'bg-danger' : 'bg-success' }}">
@@ -317,7 +317,6 @@
 
 {{-- ======================================================= --}}
 {{-- MODALS (TETAP SAMA) --}}
-{{-- ======================================================= --}}
 {{-- Modal 1: Detail Pasien --}}
 <div class="modal fade" id="detailPasienModal" tabindex="-1" aria-labelledby="detailPasienModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -333,6 +332,8 @@
                         <tr><th>Tgl Lahir / JK</th><td id="detail-tgl-jk"></td><th>Pendamping</th><td id="detail-pendamping"></td></tr>
                         <tr><th>Tgl Kunjungan</th><td id="detail-tgl-kunjungan"></td><th>Waktu Kunjungan</th><td id="detail-waktu"></td></tr>
                         <tr><th>Layanan</th><td id="detail-layanan"></td><th>Kategori</th><td id="detail-kategori"></td></tr>
+                        {{-- BARU: Baris untuk Dokter --}}
+                        <tr><th>Dokter Penanggung Jawab</th><td colspan="3" id="detail-dokter"></td></tr> 
                         <tr><th>Alamat</th><td colspan="3" id="detail-alamat"></td></tr>
                         <tr><th>Keluhan</th><td colspan="3" id="detail-keluhan"></td></tr>
                         <tr><th>Status Pemeriksaan</th><td id="detail-status-pemeriksaan"></td><th>Status Berkas</th><td id="detail-status-berkas"></td></tr>
@@ -511,11 +512,15 @@
         });
 
         // --- MODAL 1: LIHAT DETAIL (AJAX) ---
+        // ... (Kode JavaScript sebelumnya)
+
+// --- MODAL 1: LIHAT DETAIL (AJAX) ---
         const detailModal = new bootstrap.Modal(document.getElementById('detailPasienModal'));
-        const detailUrlTemplate = `{{ route('admin.pasien.detail', ['id' => 'PASIEN_ID']) }}`;
+        const detailUrlTemplate = `{{ route('admin.pasien.detail', ['id' => 'PASIEN_ID']) }}`; // Asumsi route sudah benar
 
         document.querySelectorAll('.btn-detail').forEach(button => {
             button.addEventListener('click', function() {
+                // ... (Kode setup dan loading)
                 const pasienId = this.dataset.id;
                 const loading = document.getElementById('loading-spinner');
                 const detailTable = document.querySelector('#detailPasienModal table');
@@ -527,33 +532,50 @@
                 const fetchUrl = detailUrlTemplate.replace('PASIEN_ID', pasienId);
 
                 fetch(fetchUrl)
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
                     .then(data => {
                         const d = data.data;
+
+                        // Mengisi data
                         document.getElementById('detail-antrian').textContent = d.nomor_antrian;
                         document.getElementById('detail-nama').textContent = d.nama_pasien;
                         document.getElementById('detail-hp').textContent = d.nomor_hp;
                         document.getElementById('detail-tgl-jk').textContent = `${d.tgl_lahir} / ${d.jenis_kelamin}`;
                         document.getElementById('detail-pendamping').textContent = d.pendamping;
                         document.getElementById('detail-tgl-kunjungan').textContent = d.tgl_kunjungan;
-                        document.getElementById('detail-waktu').textContent = d.waktu_kunjungan;
-                        document.getElementById('detail-layanan').textContent = d.layanan;
+                        
+                        // Mengambil waktu kunjungan yang sudah diformat di Controller
+                        document.getElementById('detail-waktu').textContent = d.waktu_kunjungan; 
+
+                        // Mengambil nama layanan (string) yang sudah diformat di Controller
+                        document.getElementById('detail-layanan').textContent = d.layanan; 
+
+                        // BARU: Mengisi Nama Dokter
+                        document.getElementById('detail-dokter').textContent = d.dokter_nama; 
+
                         document.getElementById('detail-kategori').textContent = d.kategori_pendaftaran;
                         document.getElementById('detail-alamat').textContent = d.alamat;
                         document.getElementById('detail-keluhan').textContent = d.keluhan;
                         document.getElementById('detail-status-pemeriksaan').textContent = d.status_pemeriksaan;
                         document.getElementById('detail-status-berkas').textContent = d.status_berkas;
 
+                        // Sembunyikan loading dan tampilkan tabel
                         loading.style.display = 'none';
                         detailTable.style.display = 'table';
                     })
                     .catch(error => {
                         console.error('Error fetching detail:', error);
-                        alert('Gagal mengambil detail pasien.');
+                        alert(`Gagal mengambil detail pasien: ${error.message}`);
                         detailModal.hide();
                     });
             });
         });
+
 
         // --- MODAL 2: UBAH STATUS BERKAS ---
         const statusModal = new bootstrap.Modal(document.getElementById('statusBerkasModal'));

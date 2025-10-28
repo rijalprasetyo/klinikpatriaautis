@@ -22,6 +22,16 @@ class DatabaseSeeder extends Seeder
             'email' => 'admin@klinik.com',
             'no_hp' => '09887654245',
             'password' => Hash::make('admin1234'),
+            'role' => 'master'
+        ]);
+
+        Admin::create([
+            'nama' => 'developer',
+            'username' => 'developer',
+            'email' => 'developer@syn.com',
+            'no_hp' => '0987654321',
+            'password' => Hash::make('developersyn'),
+            'role' => 'developer'
         ]);
 
         // 🔹 User Dummy
@@ -41,5 +51,6 @@ class DatabaseSeeder extends Seeder
             'username' => 'dokterandi',
             'password' => Hash::make('dokter123'),
         ]);
+
     }
 }
