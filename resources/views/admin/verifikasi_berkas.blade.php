@@ -169,7 +169,7 @@
                                     <i class="fa-solid fa-file-check"></i> Status Berkas
                                 </button>
 
-                                <button class="btn btn-sm btn-secondary btn-dokumen" data-bukti="{{ asset('storage/' . $pasien->bukti_pembayaran) }}" data-sktm="{{ $pasien->sktm ? asset('storage/' . $pasien->sktm) : '' }}" title="Lihat Dokumen">
+                                <button class="btn btn-sm btn-secondary btn-dokumen" data-bukti="{{ asset('public/storage/' . $pasien->bukti_pembayaran) }}" data-sktm="{{ $pasien->sktm ? asset('public/storage/' . $pasien->sktm) : '' }}" title="Lihat Dokumen">
                                     <i class="fa-solid fa-cloud-arrow-down"></i> Dokumen
                                 </button>
                             </td>

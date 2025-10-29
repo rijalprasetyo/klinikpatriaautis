@@ -300,7 +300,7 @@
                                             <i class="fa-solid fa-file-circle-check"></i>
                                         </button>
 
-                                        <button class="btn btn-sm btn-secondary btn-dokumen btn-action-icon" data-bukti="{{ asset('storage/' . $pasien->bukti_pembayaran) }}" data-sktm="{{ $pasien->sktm ? asset('storage/' . $pasien->sktm) : '' }}" title="Lihat Dokumen">
+                                        <button class="btn btn-sm btn-secondary btn-dokumen btn-action-icon" data-bukti="{{ asset('public/storage/' . $pasien->bukti_pembayaran) }}" data-sktm="{{ $pasien->sktm ? asset('public/storage/' . $pasien->sktm) : '' }}" title="Lihat Dokumen">
                                             <i class="fa-solid fa-cloud-arrow-down"></i>
                                         </button>
                                     </td>

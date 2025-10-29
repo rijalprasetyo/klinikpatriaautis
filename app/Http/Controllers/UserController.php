@@ -146,7 +146,7 @@ class UserController extends Controller
 
             // Upload File
             $buktiPath = $request->file('bukti_pembayaran')->store('bukti_pembayaran', 'public');
-            $sktmPath = ($request->kategori === 'Disabilitas (Dengan SKTM)' && $request->hasFile('sktm'))
+            $sktmPath = ($request->kategori === 'Disabilitas dengan Surat Keterangan Tidak Mampu' && $request->hasFile('sktm'))
                 ? $request->file('sktm')->store('sktm', 'public')
                 : null;
 

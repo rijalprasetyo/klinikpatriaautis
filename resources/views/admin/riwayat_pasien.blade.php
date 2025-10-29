@@ -257,8 +257,8 @@
                                 {{-- Tombol Video (Lihat) --}}
                                 <button class="btn btn-sm btn-primary me-1 btn-video btn-action-icon" 
                                         data-id="{{ $pasien->id }}" 
-                                        data-video-before="{{ $pasien->video_before ? asset('storage/' . $pasien->video_before) : '' }}" 
-                                        data-video-after="{{ $pasien->video_after ? asset('storage/' . $pasien->video_after) : '' }}" 
+                                        data-video-before="{{ $pasien->video_before ? asset('public/storage/' . $pasien->video_before) : '' }}" 
+                                        data-video-after="{{ $pasien->video_after ? asset('public/storage/' . $pasien->video_after) : '' }}" 
                                         title="Lihat Video">
                                     <i class="fa-solid fa-video"></i>
                                 </button>
@@ -268,6 +268,10 @@
                                         data-id="{{ $pasien->id }}" 
                                         title="Lihat Catatan">
                                     <i class="fa-solid fa-notes-medical"></i>
+                                </button>
+                                
+                                <button class="btn btn-sm btn-secondary btn-dokumen btn-action-icon" data-bukti="{{ asset('public/storage/' . $pasien->bukti_pembayaran) }}" data-sktm="{{ $pasien->sktm ? asset('public/storage/' . $pasien->sktm) : '' }}" title="Lihat Dokumen">
+                                    <i class="fa-solid fa-cloud-arrow-down"></i>
                                 </button>
                                 
                                 {{-- Tombol Lihat Feedback --}}
@@ -362,6 +366,33 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Modal 3: Lihat Dokumen --}}
+<div class="modal fade" id="dokumenModal" tabindex="-1" aria-labelledby="dokumenModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title" id="dokumenModalLabel"><i class="fa-solid fa-folder-open me-2"></i>Dokumen Pasien</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <h6>Bukti Pembayaran</h6>
+                        <iframe id="bukti-pembayaran-frame" style="width: 100%; height: 500px; border: 1px solid var(--border-light);"></iframe>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <h6>Surat Keterangan Tidak Mampu (SKTM)</h6>
+                        <div id="sktm-container">
+                            <iframe id="sktm-frame" style="width: 100%; height: 500px; border: 1px solid var(--border-light);"></iframe>
+                            <p id="sktm-not-found" class="alert alert-warning text-center mt-2" style="display: none;">Dokumen SKTM tidak diunggah.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -560,6 +591,34 @@
             document.getElementById('video-before-player').pause();
             document.getElementById('video-after-player').pause();
         });
+
+
+        const dokumenModal = new bootstrap.Modal(document.getElementById('dokumenModal'));
+
+        document.querySelectorAll('.btn-dokumen').forEach(button => {
+            button.addEventListener('click', function() {
+                const buktiPath = this.dataset.bukti;
+                const sktmPath = this.dataset.sktm;
+                
+                document.getElementById('bukti-pembayaran-frame').src = buktiPath;
+
+                const sktmFrame = document.getElementById('sktm-frame');
+                const sktmNotFound = document.getElementById('sktm-not-found');
+                
+                if (sktmPath) {
+                    sktmFrame.src = sktmPath;
+                    sktmFrame.style.display = 'block';
+                    sktmNotFound.style.display = 'none';
+                } else {
+                    sktmFrame.src = '';
+                    sktmFrame.style.display = 'none';
+                    sktmNotFound.style.display = 'block';
+                }
+
+                dokumenModal.show();
+            });
+        });
+    
 
 
         // ===== MODAL CATATAN (VIEW ONLY) =====
