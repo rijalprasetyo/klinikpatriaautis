@@ -320,7 +320,7 @@ class DokterController extends Controller
             if ($pasien->video_before) {
                 \Storage::disk('public')->delete($pasien->video_before);
             }
-            $path = $request->file('video_before')->store('video_before', 'public');
+            $path = $request->file('video_before')->store('video_before', 'public_folder');
             $updateData['video_before'] = $path;
         }
 
@@ -330,7 +330,7 @@ class DokterController extends Controller
             if ($pasien->video_after) {
                 \Storage::disk('public')->delete($pasien->video_after);
             }
-            $path = $request->file('video_after')->store('video_after', 'public');
+            $path = $request->file('video_after')->store('video_after', 'public_folder');
             $updateData['video_after'] = $path;
         }
 
