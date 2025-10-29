@@ -387,11 +387,11 @@
 
         /* PERUBAHAN: Menyesuaikan gaya ikon layanan agar konsisten */
         .service-icon img {
-            width: 50px;
-            height: 50px;
-            object-fit: contain;
-            /* BARU: Membuat gambar layanan menjadi bulat */
-            border-radius: 50%; 
+            width: 60px;  /* Ukuran lebih besar agar lebih jelas */
+            height: 60px;
+            object-fit: cover;  /* Ganti dari 'contain' ke 'cover' agar gambar memenuhi area bulat */
+            border-radius: 50%;  /* Membuat gambar menjadi bulat sempurna */
+            border: 3px solid rgba(5, 112, 182, 0.2);  /* Tambahan: border untuk estetika */
         }
 
         .service-icon i {
