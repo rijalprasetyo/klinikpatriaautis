@@ -3,13 +3,28 @@
 @section('content')
 
 @php
-    $isSktm = ($kategori === 'Disabilitas (Dengan SKTM)');
-    $isNonSktm = ($kategori === 'Disabilitas (Non-SKTM)');
-    $isMasyarakatUmum = ($kategori === 'Masyarakat Umum');
+    // Penamaan Kategori Baru
+    $kategoriSktm = 'Disabilitas dengan Surat Keterangan Tidak Mampu';
+    $kategoriNonSktm = 'Disabilitas tanpa Surat Keterangan Tidak Mampu';
+    $kategoriUmum = 'Masyarakat Umum';
     
-    // Asumsi biaya tetap sesuai kategori
-    // Di kode Anda, SKTM 30k, lainnya 80k. Kita ikuti logika Anda yang awal:
-    $biaya = $isSktm ? 30000 : 80000;
+    // Pengecekan Kategori menggunakan nama asli yang dilewatkan dari controller ($kategori)
+    $isSktm = ($kategori === $kategoriSktm);
+    $isNonSktm = ($kategori === $kategoriNonSktm);
+    $isMasyarakatUmum = ($kategori === $kategoriUmum);
+    
+    // Penentuan Biaya Berdasarkan Permintaan Baru
+    if ($isSktm) {
+        $biaya = 35000;
+    } elseif ($isNonSktm) {
+        $biaya = 80000;
+    } elseif ($isMasyarakatUmum) {
+        $biaya = 100000;
+    } else {
+        // Fallback jika kategori tidak dikenal (misalnya, default ke Umum)
+        $biaya = 100000;
+    }
+
     $biayaFormatted = 'Rp ' . number_format($biaya, 0, ',', '.');
     $rekeningNumber = '3680578094';
     $rekeningBank = 'Bank BCA';
@@ -506,17 +521,22 @@
     @endif
 
     <div class="card p-0 shadow-lg rounded-3">
-        <div class="form-header d-flex justify-content-between align-items-center">
-            <div>
-                <h2>Formulir Pendaftaran Pasien</h2>
-                <p>Kategori: <strong>{{ $kategori }}</strong></p>
+        <div class="card-header bg-white p-4">
+            <div class="form-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Formulir Pendaftaran Pasien</h2>
+                    {{-- Menampilkan kategori yang sudah di-resolve --}}
+                    <p class="mb-0">Kategori: <strong>{{ $kategori }}</strong></p>
+                </div>
+                {{-- Biaya selalu ditampilkan di header --}}
+                <div class="cost h5 mb-0 p-3 bg-light rounded-2 border border-primary text-primary">{{ $biayaFormatted }}</div>
             </div>
-            <div class="cost h5">{{ $biayaFormatted }}</div>
         </div>
 
         <form id="pendaftaranForm" action="{{ route('pendaftaran.store') }}" method="POST" enctype="multipart/form-data" class="p-4">
             @csrf
-            <input type="hidden" name="kategori" value="{{ $kategori }}">
+            {{-- Menggunakan $kategori asli yang dilewatkan dari controller --}}
+            <input type="hidden" name="kategori" value="{{ $kategori }}"> 
             <input type="hidden" name="biaya_pendaftaran" value="{{ $biaya }}">
             <input type="file" name="bukti_pembayaran" id="bukti_pembayaran_input" class="d-none" required accept=".jpg,.jpeg,.png,.pdf">
             @if ($isSktm)
@@ -524,7 +544,7 @@
             @endif
 
             {{-- DATA PASIEN --}}
-            <h4 class="form-section-title">Data Pasien & Pendamping</h4>
+            <h4 class="form-section-title mt-3">Data Pasien & Pendamping</h4>
             
             <div class="mb-3">
                 <label class="form-label">Nama Lengkap Pasien</label>

@@ -860,7 +860,7 @@
                     <h5 class="footer-title">Kontak</h5>
                     <ul class="list-unstyled">
                         <li class="mb-2"><i class="fas fa-map-marker-alt me-2"></i>Jl. Manggar No.08, Sengkaling, Mulyoagung, Kec. Dau, Kabupaten Malang, Jawa Timur</li>
-                        <li class="mb-2"><i class="fas fa-phone me-2"></i>0898-4109-368</li>
+                        <li class="mb-2"><i class="fas fa-phone me-2"></i>0896-8187-0970</li>
                         <li class="mb-2"><i class="fas fa-envelope me-2"></i>macdatabase25@gmail.com</li>
                     </ul>
                 </div>
