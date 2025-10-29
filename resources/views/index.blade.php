@@ -809,7 +809,7 @@
                         <div class="category-icon">
                             <img src="https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=400" alt="Prioritas">
                         </div>
-                        <h3 class="h5 text-center fw-bold mb-2" style="color: var(--dark);">Disabilitas Prioritas<br>(Dengan SKTM)</h3>
+                        <h3 class="h5 text-center fw-bold mb-2" style="color: var(--dark);">Disabilitas Prioritas<br>(Dengan Surat Keterangan Tidak Mampu)</h3>
                         <p class="text-muted text-center small mb-4">Layanan rehabilitasi <strong>Gratis</strong> bagi keluarga prasejahtera.</p>
                         <a href="{{ route('user.login.submit') }}" class="btn btn-register">
                             Daftar Sekarang <i class="fas fa-arrow-right ms-2"></i>
@@ -821,7 +821,7 @@
                         <div class="category-icon">
                             <img src="https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=400" alt="Disabilitas">
                         </div>
-                        <h3 class="h5 text-center fw-bold mb-2" style="color: var(--dark);">Disabilitas<br>(Non-SKTM)</h3>
+                        <h3 class="h5 text-center fw-bold mb-2" style="color: var(--dark);">Disabilitas<br>(Tanpa Surat Keterangan Tidak Mampu)</h3>
                         <p class="text-muted text-center small mb-4">Layanan dengan biaya terjangkau untuk kategori non-prasejahtera.</p>
                         <a href="{{ route('user.login.submit') }}" class="btn btn-register">
                             Daftar Sekarang <i class="fas fa-arrow-right ms-2"></i>
