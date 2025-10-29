@@ -144,11 +144,23 @@ class UserController extends Controller
             $countPadaTglKunjungan = DataPasien::whereDate('tgl_kunjungan', $tglKunjungan->toDateString())->count();
             $nomorAntrianHarian = str_pad($countPadaTglKunjungan + 1, 3, '0', STR_PAD_LEFT);
 
-            // Upload File
-            $buktiPath = $request->file('bukti_pembayaran')->store('bukti_pembayaran', 'public');
-            $sktmPath = ($request->kategori === 'Disabilitas dengan Surat Keterangan Tidak Mampu' && $request->hasFile('sktm'))
-                ? $request->file('sktm')->store('sktm', 'public')
-                : null;
+
+            $buktiPath = null;
+            if ($request->hasFile('bukti_pembayaran')) {
+                $file = $request->file('bukti_pembayaran');
+                $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path('storage/bukti_pembayaran'), $filename);
+                $buktiPath = 'bukti_pembayaran/' . $filename;
+            }
+
+            $sktmPath = null;
+            if ($request->hasFile('sktm')) {
+                $file = $request->file('sktm');
+                $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path('storage/sktm'), $filename);
+                $sktmPath = 'sktm/' . $filename;
+            }
+
 
             // Simpan ke Database
             $pasien = DataPasien::create([
