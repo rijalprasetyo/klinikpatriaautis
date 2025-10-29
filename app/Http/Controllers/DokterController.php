@@ -302,8 +302,8 @@ class DokterController extends Controller
     public function uploadVideos(Request $request, $id)
     {
         $request->validate([
-            'video_before' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/x-flv|max:25600', // Maks 25MB = 5120 KB
-            'video_after' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/x-flv|max:25600', // Maks 25MB
+            'video_before' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/x-flv|max:25600',
+            'video_after' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/x-flv|max:25600',
         ], [
             'video_before.max' => 'Ukuran Video Sebelum Pemeriksaan maksimal 25 MB.',
             'video_after.max' => 'Ukuran Video Sesudah Pemeriksaan maksimal 25 MB.',
@@ -314,24 +314,37 @@ class DokterController extends Controller
         $pasien = DataPasien::findOrFail($id);
         $updateData = [];
 
-        // 1. Proses Unggah Video Before
+        // Path tujuan langsung ke public_html/public/storage
+        $destination = public_path('storage');
+
+        // === Video Before ===
         if ($request->hasFile('video_before')) {
-            // Hapus video lama jika ada
             if ($pasien->video_before) {
-                \Storage::disk('public')->delete($pasien->video_before);
+                @unlink(public_path('storage/' . $pasien->video_before));
             }
-            $path = $request->file('video_before')->store('video_before', 'public_folder');
-            $updateData['video_before'] = $path;
+
+            $file = $request->file('video_before');
+            $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+
+            // Pindahkan file ke folder public_html/public/storage/video_before
+            $file->move($destination . '/video_before', $filename);
+
+            $updateData['video_before'] = 'video_before/' . $filename;
         }
 
-        // 2. Proses Unggah Video After
+        // === Video After ===
         if ($request->hasFile('video_after')) {
-            // Hapus video lama jika ada
             if ($pasien->video_after) {
-                \Storage::disk('public')->delete($pasien->video_after);
+                @unlink(public_path('storage/' . $pasien->video_after));
             }
-            $path = $request->file('video_after')->store('video_after', 'public_folder');
-            $updateData['video_after'] = $path;
+
+            $file = $request->file('video_after');
+            $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+
+            // Pindahkan file ke folder public_html/public/storage/video_after
+            $file->move($destination . '/video_after', $filename);
+
+            $updateData['video_after'] = 'video_after/' . $filename;
         }
 
         if (!empty($updateData)) {
@@ -341,6 +354,7 @@ class DokterController extends Controller
 
         return back()->with('warning', 'Tidak ada file video yang diunggah atau diperbarui.');
     }
+
 
     public function deleteVideo(Request $request, $id)
     {
