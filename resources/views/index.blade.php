@@ -166,6 +166,7 @@
             display: flex;
             align-items: center;
             overflow: hidden;
+            background-color: var(--light); /* Tambahkan fallback warna */
         }
 
         #hero::before {
@@ -389,6 +390,8 @@
             width: 50px;
             height: 50px;
             object-fit: contain;
+            /* BARU: Membuat gambar layanan menjadi bulat */
+            border-radius: 50%; 
         }
 
         .service-icon i {
