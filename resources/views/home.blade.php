@@ -2,6 +2,13 @@
 
 @section('content')
 
+@php
+    // Definisi Kategori Baru untuk konsistensi
+    $kategoriSktm = 'Disabilitas dengan Surat Keterangan Tidak Mampu';
+    $kategoriNonSktm = 'Disabilitas tanpa Surat Keterangan Tidak Mampu';
+    $kategoriUmum = 'Masyarakat Umum';
+@endphp
+
 <style>
     /* ======================================================= */
     /* 1. VARIABEL & RESET */
@@ -848,7 +855,8 @@
                                         <small class="text-muted">{{ $data->layanan_id ?? '-' }}</small>
                                     </td>
                                     <td class="text-center">
-                                        <span class="badge-custom warning">{{ $data->status_pemeriksaan }}</span>
+                                        {{-- Asumsi badge warning untuk status pending/baru --}}
+                                        <span class="badge-custom warning">{{ $data->status_pemeriksaan }}</span> 
                                     </td>
                                 </tr>
                             @empty
@@ -905,7 +913,7 @@
         </div>
     </section>
 
-    {{-- SECTION 2: Pilih Kategori Pendaftaran --}}
+    {{-- SECTION 2: Pilih Kategori Pendaftaran (MODIFIED) --}}
     <section id="pendaftaran" class="bg-light-gray">
         <div class="card-category-wrapper">
             <h2 class="text-center">Pilih Kategori Pendaftaran</h2>
@@ -917,10 +925,11 @@
                         <div class="category-icon">
                             <img src="https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?q=80&w=400&auto=format&fit=crop" alt="Disabilitas SKTM">
                         </div>
-                        <h3>Disabilitas<br>(Dengan SKTM)</h3>
+                        {{-- Menggunakan penamaan baru dan passing ke URL yang baru --}}
+                        <h3>Disabilitas dengan<br>Surat Keterangan Tidak Mampu</h3>
                         <button 
                             class="btn-primary-modern mt-auto" 
-                            onclick="window.location.href='/pendaftaran?kategori=Disabilitas (Dengan SKTM)'">
+                            onclick="window.location.href='/pendaftaran?kategori={{ $kategoriSktm }}'">
                             Daftar Kategori Ini
                         </button>
                     </div>
@@ -930,10 +939,11 @@
                         <div class="category-icon">
                             <img src="https://images.unsplash.com/photo-1599058917212-d750089bc07e?q=80&w=400&auto=format&fit=crop" alt="Disabilitas Non-SKTM">
                         </div>
-                        <h3>Disabilitas<br>(Non-SKTM)</h3>
+                        {{-- Menggunakan penamaan baru dan passing ke URL yang baru --}}
+                        <h3>Disabilitas tanpa<br>Surat Keterangan Tidak Mampu</h3>
                         <button 
                             class="btn-primary-modern mt-auto"
-                            onclick="window.location.href='/pendaftaran?kategori=Disabilitas (Non-SKTM)'">
+                            onclick="window.location.href='/pendaftaran?kategori={{ $kategoriNonSktm }}'">
                             Daftar Kategori Ini
                         </button>
                     </div>
@@ -943,10 +953,11 @@
                         <div class="category-icon">
                             <img src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?q=80&w=400&auto=format&fit=crop" alt="Masyarakat Umum">
                         </div>
+                        {{-- Menggunakan penamaan baru dan passing ke URL yang baru --}}
                         <h3>Masyarakat<br>Umum</h3>
                         <button 
                             class="btn-primary-modern mt-auto"
-                            onclick="window.location.href='/pendaftaran?kategori=Masyarakat Umum'">
+                            onclick="window.location.href='/pendaftaran?kategori={{ $kategoriUmum }}'">
                             Daftar Kategori Ini
                         </button>
                     </div>
@@ -1005,7 +1016,7 @@
                     @endforeach
 
                     {{-- Menggunakan $jenis_layanan di pengecekan isEmpty() --}}
-                    @if($jenis_layanan->isEmpty())
+                    @if(isset($jenis_layanan) && $jenis_layanan->isEmpty())
                         <div class="text-center text-muted" style="grid-column: 1 / -1;">
                             Belum ada data layanan yang tersedia saat ini.
                         </div>
