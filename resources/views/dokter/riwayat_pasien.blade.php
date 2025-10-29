@@ -255,8 +255,8 @@
                                 {{-- Tombol Video --}}
                                 <button class="btn btn-sm btn-primary me-1 btn-video btn-action-icon" 
                                         data-id="{{ $pasien->id }}" 
-                                        data-video-before="{{ $pasien->video_before ? asset('storage/' . $pasien->video_before) : '' }}" 
-                                        data-video-after="{{ $pasien->video_after ? asset('storage/' . $pasien->video_after) : '' }}" 
+                                        data-video-before="{{ $pasien->video_before ? asset('public/storage/' . $pasien->video_before) : '' }}" 
+                                        data-video-after="{{ $pasien->video_after ? asset('public/storage/' . $pasien->video_after) : '' }}" 
                                         title="Video">
                                     <i class="fa-solid fa-video"></i>
                                 </button>
