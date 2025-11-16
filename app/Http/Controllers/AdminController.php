@@ -273,11 +273,24 @@ class AdminController extends Controller
     {
         $request->validate(['status_berkas' => 'required|in:Belum Diverifikasi,Sudah Diverifikasi']);
 
-        $pasien = DataPasien::findOrFail($id);
-        $pasien->status_berkas = $request->status_berkas;
-        $pasien->save();
+        try {
+            $pasien = DataPasien::findOrFail($id);
+            $pasien->status_berkas = $request->status_berkas;
+            $pasien->save();
 
-        return back()->with('success', "Status berkas pasien {$pasien->nama_pasien} berhasil diperbarui menjadi '{$request->status_berkas}'.");
+            // PASTIKAN INI ADA UNTUK AJAX
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['status' => 'success', 'message' => 'Status berkas berhasil diperbarui!']);
+            }
+            
+            return back()->with('success', "Status berkas pasien {$pasien->nama_pasien} berhasil diperbarui menjadi '{$request->status_berkas}'.");
+        
+        } catch (\Exception $e) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['status' => 'error', 'message' => 'Gagal memperbarui status. Pesan Error: ' . $e->getMessage()], 500);
+            }
+            return back()->with('error', 'Gagal memperbarui status berkas. Pesan Error: ' . $e->getMessage());
+        }
     }
 
     public function logout(Request $request)
@@ -516,6 +529,11 @@ class AdminController extends Controller
         // PERBAIKAN: Hapus relasi 'layanan' dari with().
         $query = DataPasien::with(['dokter']);
 
+        // 1. Filter Kategori Pendaftaran (BARU DITAMBAHKAN)
+        if ($request->filled('kategori_pendaftaran')) {
+            $query->where('kategori_pendaftaran', $request->kategori_pendaftaran);
+        }
+        
         // Filter Tanggal Mulai
         if ($request->filled('start_date')) {
             $query->whereDate('tgl_kunjungan', '>=', $request->start_date);
@@ -537,13 +555,26 @@ class AdminController extends Controller
         }
 
         $dataPasien = $query->orderBy('tgl_kunjungan', 'desc')->get();
+        
+        // 2. Ambil daftar kategori unik yang ada di database (BARU DITAMBAHKAN)
+        // Asumsikan model DataPasien sudah di-import.
+        $kategoriList = DataPasien::select('kategori_pendaftaran')
+                            ->distinct()
+                            ->pluck('kategori_pendaftaran')
+                            ->filter() // Menghapus nilai kosong/null jika ada
+                            ->sort()
+                            ->values()
+                            ->toArray();
 
+        // 3. Update data yang di-pass ke view
         return view('admin.riwayat_pasien', [
             'dataPasien' => $dataPasien,
             'filterStartDate' => $request->start_date,
             'filterEndDate' => $request->end_date,
             'filterStatusPemeriksaan' => $request->status_pemeriksaan,
             'filterNamaPasien' => $request->nama_pasien,
+            'filterKategori' => $request->kategori_pendaftaran, // Data filter yang sedang aktif
+            'kategoriList' => $kategoriList,                     // Daftar semua kategori unik
         ]);
     }
 

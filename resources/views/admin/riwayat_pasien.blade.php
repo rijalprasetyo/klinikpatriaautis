@@ -10,10 +10,11 @@
     --text-dark: #343a40;
     --bg-light: #f8f9fa;
     --border-light: #dee2e6;
+    --status-wait: #ffc107; /* Kuning untuk Menunggu */
+    --status-reject: #dc3545; /* Merah untuk Ditolak */
 }
 
 /* Penyesuaian Container untuk Memaksimalkan Lebar */
-/* Menghilangkan padding horizontal di container-fluid */
 .container-fluid {
     padding-left: 10px !important;
     padding-right: 10px !important;
@@ -71,6 +72,7 @@
 .modal-header.bg-info { background-color: var(--primary-blue) !important; }
 .modal-header.bg-success { background-color: #28a745 !important; }
 .modal-header.bg-danger { background-color: #dc3545 !important; }
+.modal-header.bg-warning-custom { background-color: #ffc107 !important; color: var(--text-dark) !important;}
 
 
 .modal-body table th {
@@ -103,18 +105,16 @@
     border-radius: 0.5rem;
 }
 
-/* Penyesuaian khusus untuk Modal Status */
-#status-loading-spinner, #status-content, #status-modal-footer, 
-#upload-loading-before, #upload-loading-after {
-    display: none; /* Default hidden */
-}
-
 /* Status Berkas Custom Colors */
-.badge.bg-berkas-merah { /* Belum Diverifikasi */
-    background-color: #dc3545 !important;
+.badge.bg-berkas-merah { /* Belum Diverifikasi, Ditolak */
+    background-color: var(--status-reject) !important;
 }
 .badge.bg-berkas-biru { /* Sudah Diverifikasi */
-    background-color: #007bff !important;
+    background-color: var(--primary-blue) !important;
+}
+.badge.bg-berkas-kuning { /* Menunggu (Khusus Masyarakat Umum) */
+    background-color: var(--status-wait) !important;
+    color: var(--text-dark) !important;
 }
 
 
@@ -138,10 +138,16 @@
 
     <hr>
 
-    {{-- Alert Notifikasi (hanya untuk tampilan) --}}
+    {{-- Alert Notifikasi (dari session Laravel, tetap dipertahankan) --}}
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show">
             {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show">
+            {{ session('error') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
@@ -159,6 +165,22 @@
         <div class="col-md-3 col-sm-6 mb-2">
             <label for="end_date" class="form-label">Tanggal Akhir</label>
             <input type="date" name="end_date" id="end_date" class="form-control" value="{{ $filterEndDate }}">
+        </div>
+        
+        {{-- Filter Kategori BARU --}}
+        <div class="col-md-2 col-sm-6 mb-2">
+            <label for="kategori_pendaftaran" class="form-label">Kategori</label>
+            <select name="kategori_pendaftaran" id="kategori_pendaftaran" class="form-select">
+                <option value="">-- Semua --</option>
+                {{-- $kategoriList dan $filterKategori harus di-pass dari controller --}}
+                @if(isset($kategoriList))
+                    @foreach($kategoriList as $kategori)
+                        <option value="{{ $kategori }}" {{ (isset($filterKategori) && $filterKategori == $kategori) ? 'selected' : '' }}>
+                            {{ $kategori }}
+                        </option>
+                    @endforeach
+                @endif
+            </select>
         </div>
         
         {{-- Filter Status Pemeriksaan --}}
@@ -211,8 +233,8 @@
                         <th>Tgl Kunjungan</th>
                         <th>Dokter</th>
                         <th>Status Periksa</th>
-                        <th>Status Berkas</th> {{-- KOLOM BARU --}}
-                        <th style="width: 20%;">Aksi</th> {{-- Dikecilkan sedikit karena ada tambahan kolom --}}
+                        <th>Status Berkas</th>
+                        <th style="width: 25%;">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -240,12 +262,17 @@
                             <td>
                                 @php
                                     $fileStatus = $pasien->status_berkas ?? 'Belum Diverifikasi';
-                                    $fileBadgeClass = ($fileStatus == 'Sudah Diverifikasi') ? 'bg-berkas-biru' : 'bg-berkas-merah';
+                                    $fileBadgeClass = 'bg-berkas-merah';
+                                    if ($fileStatus == 'Sudah Diverifikasi') {
+                                        $fileBadgeClass = 'bg-berkas-biru';
+                                    } elseif ($fileStatus == 'Menunggu') {
+                                        $fileBadgeClass = 'bg-berkas-kuning';
+                                    }
                                 @endphp
                                 <span class="badge {{ $fileBadgeClass }}">
                                     {{ $fileStatus }}
                                 </span>
-                            </td> {{-- DATA BARU --}}
+                            </td>
                             <td>
                                 {{-- Tombol Detail (Lihat) --}}
                                 <button class="btn btn-sm btn-info text-white me-1 btn-detail btn-action-icon" 
@@ -270,7 +297,11 @@
                                     <i class="fa-solid fa-notes-medical"></i>
                                 </button>
                                 
-                                <button class="btn btn-sm btn-secondary btn-dokumen btn-action-icon" data-bukti="{{ asset('public/storage/' . $pasien->bukti_pembayaran) }}" data-sktm="{{ $pasien->sktm ? asset('public/storage/' . $pasien->sktm) : '' }}" title="Lihat Dokumen">
+                                {{-- Tombol Dokumen --}}
+                                <button class="btn btn-sm btn-secondary btn-dokumen btn-action-icon" 
+                                        data-bukti="{{ asset('public/storage/' . $pasien->bukti_pembayaran) }}" 
+                                        data-sktm="{{ $pasien->sktm ? asset('public/storage/' . $pasien->sktm) : '' }}" 
+                                        title="Lihat Dokumen">
                                     <i class="fa-solid fa-cloud-arrow-down"></i>
                                 </button>
                                 
@@ -280,6 +311,15 @@
                                         data-feedback="{{ $pasien->feedback }}" 
                                         title="Lihat Feedback">
                                     <i class="fa-solid fa-comment-dots"></i>
+                                </button>
+                                
+                                {{-- Tombol UBAH STATUS BERKAS --}}
+                                <button class="btn btn-sm btn-warning btn-status-berkas btn-action-icon" 
+                                        data-id="{{ $pasien->id }}" 
+                                        data-kategori="{{ $pasien->kategori_pendaftaran }}"
+                                        data-status="{{ $pasien->status_berkas ?? 'Belum Diverifikasi' }}" 
+                                        title="Ubah Status Berkas">
+                                    <i class="fa-solid fa-file-shield"></i>
                                 </button>
                             </td>
                         </tr>
@@ -305,7 +345,7 @@
                         <tr><th>Tgl Lahir / JK</th><td id="detail-tgl-jk"></td><th>Pendamping</th><td id="detail-pendamping"></td></tr>
                         <tr><th>Tgl Kunjungan</th><td id="detail-tgl-kunjungan"></td><th>Waktu Kunjungan</th><td id="detail-waktu"></td></tr>
                         <tr><th>Layanan</th><td id="detail-layanan"></td><th>Kategori</th><td id="detail-kategori"></td></tr>
-                        <tr><th>Dokter Penanggung Jawab</th><td colspan="3" id="detail-dokter-pj"></td></tr> {{-- Dokter Penanggung Jawab --}}
+                        <tr><th>Dokter Penanggung Jawab</th><td colspan="3" id="detail-dokter-pj"></td></tr>
                         <tr><th>Alamat</th><td colspan="3" id="detail-alamat"></td></tr>
                         <tr><th>Keluhan</th><td colspan="3" id="detail-keluhan"></td></tr>
                         <tr><th>Status Pemeriksaan</th><td id="detail-status-pemeriksaan"></td><th>Status Berkas</th><td id="detail-status-berkas"></td></tr>
@@ -398,7 +438,7 @@
     </div>
 </div>
 
-{{-- Modal 3: Catatan (Lihat Saja) --}}
+{{-- Modal 4: Catatan (Lihat Saja) --}}
 <div class="modal fade" id="catatanModal" tabindex="-1" aria-labelledby="catatanModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
@@ -430,7 +470,7 @@
     </div>
 </div>
 
-{{-- Modal 4: Lihat Feedback (Baru) --}}
+{{-- Modal 5: Lihat Feedback (Baru) --}}
 <div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
@@ -453,6 +493,41 @@
     </div>
 </div>
 
+{{-- Modal 6: UBAH STATUS BERKAS (BARU) --}}
+<div class="modal fade" id="statusBerkasModal" tabindex="-1" aria-labelledby="statusBerkasModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content">
+            <form id="form-update-status-berkas" method="POST">
+                @csrf
+                {{-- INPUT METHOD SPOOFING UNTUK LARAVEL (PUT) --}}
+                <input type="hidden" name="_method" id="method-spoofing" value=""> 
+                
+                <div class="modal-header bg-warning-custom">
+                    <h5 class="modal-title" id="statusBerkasModalLabel">
+                        <i class="fa-solid fa-file-shield me-2"></i> Ubah Status Berkas
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">Pasien: <strong id="status-pasien-nama"></strong> | Kategori: <strong id="status-pasien-kategori"></strong></p>
+                    <div class="mb-3">
+                        <label for="status_berkas_select" class="form-label fw-bold">Pilih Status Baru</label>
+                        <select class="form-select" id="status_berkas_select" name="status_berkas" required>
+                            {{-- Opsi akan diisi oleh JavaScript --}}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-warning text-dark" id="btn-submit-status-berkas">
+                        <span id="status-loading-spinner-modal" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" style="display: none;"></span>
+                        Simpan Perubahan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 {{-- Modal Konfirmasi Hapus Video --}}
 <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
@@ -478,8 +553,46 @@
     </div>
 </div>
 
-{{-- JAVASCRIPT --}}
+{{-- Container untuk Toast (Pop-up notifikasi non-blokir) --}}
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="liveToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="toast-message">
+                {{-- Pesan akan dimasukkan di sini oleh JavaScript --}}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+{{-- JAVASCRIPT BARU DENGAN TOAST --}}
 <script>
+    // Fungsi untuk menampilkan Toast Notifikasi
+    function showToast(message, type = 'success') {
+        const toastElement = document.getElementById('liveToast');
+        const toastBody = document.getElementById('toast-message');
+        
+        // Reset class
+        toastElement.className = 'toast align-items-center text-white border-0';
+        
+        // Set warna dan pesan
+        let backgroundColor = '';
+        if (type === 'success') {
+            backgroundColor = 'bg-success';
+        } else if (type === 'error') {
+            backgroundColor = 'bg-danger';
+        } else {
+            backgroundColor = 'bg-info';
+        }
+
+        toastElement.classList.add(backgroundColor);
+        toastBody.textContent = message;
+
+        const toast = new bootstrap.Toast(toastElement);
+        toast.show();
+    }
+
+
     function showLoading() {
         document.getElementById('loading').style.display = 'flex';
         const table = document.querySelector('.table-responsive table');
@@ -491,16 +604,21 @@
         const videoModal = new bootstrap.Modal(document.getElementById('videoModal'));
         const catatanModal = new bootstrap.Modal(document.getElementById('catatanModal'));
         const feedbackModal = new bootstrap.Modal(document.getElementById('feedbackModal')); 
+        const dokumenModal = new bootstrap.Modal(document.getElementById('dokumenModal'));
+        const statusBerkasModal = new bootstrap.Modal(document.getElementById('statusBerkasModal'));
         
         // --- URL Endpoints ---
-        // Gunakan rute admin
         const detailUrlTemplate = `{{ route('admin.pasien.detail', ['id' => 'PASIEN_ID']) }}`;
         const getCatatanUrlTemplate = `{{ route('admin.pasien.get-catatan', ['id' => 'PASIEN_ID']) }}`;
         
+        // Route POST: admin.pasien.update-berkas -> /admin/pasien/{id}/update-berkas
+        const updateNonMasyarakatUmumUrl = (id) => `{{ route('admin.pasien.update-berkas', ['id' => 'PASIEN_ID']) }}`.replace('PASIEN_ID', id);
+        
+        // Route PUT: admin.berkas.update-masyarakat-umum -> /admin/berkas-umum/{id}/update
+        const updateMasyarakatUmumUrl = (id) => `{{ route('admin.berkas.update-masyarakat-umum', ['id' => 'PASIEN_ID']) }}`.replace('PASIEN_ID', id);
+        
         let currentPasienId = null;
         
-        // --- ADMIN VIEW ONLY: Hapus/Nonaktifkan elemen yang tidak digunakan ---
-
         document.getElementById('loading').style.display = 'none';
 
         // ===== MODAL DETAIL PASIEN (VIEW ONLY) =====
@@ -528,7 +646,6 @@
                         document.getElementById('detail-layanan').textContent = d.layanan;
                         document.getElementById('detail-kategori').textContent = d.kategori_pendaftaran;
                         
-                        // Isi nama dokter penanggung jawab
                         document.getElementById('detail-dokter-pj').textContent = d.dokter_nama || 'Belum Ditentukan';
 
                         document.getElementById('detail-alamat').textContent = d.alamat;
@@ -541,7 +658,7 @@
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        alert('Gagal mengambil detail pasien.');
+                        showToast('Gagal mengambil detail pasien.', 'error'); // Menggunakan Toast
                         detailModal.hide();
                     });
             });
@@ -593,8 +710,7 @@
         });
 
 
-        const dokumenModal = new bootstrap.Modal(document.getElementById('dokumenModal'));
-
+        // ===== MODAL DOKUMEN (VIEW ONLY) =====
         document.querySelectorAll('.btn-dokumen').forEach(button => {
             button.addEventListener('click', function() {
                 const buktiPath = this.dataset.bukti;
@@ -668,6 +784,121 @@
                 document.getElementById('feedback-text-view').textContent = feedback || 'Pasien belum memberikan feedback.';
                 
                 feedbackModal.show();
+            });
+        });
+
+
+        // ===== MODAL UBAH STATUS BERKAS (BARU) =====
+        document.querySelectorAll('.btn-status-berkas').forEach(button => {
+            button.addEventListener('click', function() {
+                const pasienId = this.dataset.id;
+                const kategori = this.dataset.kategori;
+                const currentStatus = this.dataset.status;
+                const pasienName = this.closest('tr').querySelector('td:nth-child(2)').textContent;
+
+                const selectElement = document.getElementById('status_berkas_select');
+                const form = document.getElementById('form-update-status-berkas');
+                const methodSpoofingInput = document.getElementById('method-spoofing');
+                
+                // Reset opsi dan method
+                selectElement.innerHTML = ''; 
+                methodSpoofingInput.value = '';
+
+                document.getElementById('status-pasien-nama').textContent = pasienName;
+                document.getElementById('status-pasien-kategori').textContent = kategori;
+                
+                let options = [];
+
+                if (kategori.toLowerCase().includes('masyarakat umum')) {
+                    options = ['Menunggu', 'Sudah Diverifikasi', 'Ditolak'];
+                    form.action = updateMasyarakatUmumUrl(pasienId);
+                    methodSpoofingInput.value = 'PUT'; // Set method untuk Laravel spoofing
+                } else {
+                    options = ['Belum Diverifikasi', 'Sudah Diverifikasi'];
+                    form.action = updateNonMasyarakatUmumUrl(pasienId);
+                    // methodSpoofingInput tetap kosong, karena default method adalah POST
+                }
+
+                options.forEach(option => {
+                    const newOption = document.createElement('option');
+                    newOption.value = option;
+                    newOption.textContent = option;
+                    if (option === currentStatus) {
+                        newOption.selected = true;
+                    }
+                    selectElement.appendChild(newOption);
+                });
+                
+                // Pastikan status saat ini masuk ke opsi jika belum ada
+                if (!options.includes(currentStatus)) {
+                    const currentOption = document.createElement('option');
+                    currentOption.value = currentStatus;
+                    currentOption.textContent = currentStatus;
+                    currentOption.selected = true;
+                    selectElement.prepend(currentOption);
+                }
+
+                statusBerkasModal.show();
+            });
+        });
+
+        // Handler pengiriman form AJAX untuk Update Status Berkas
+        document.getElementById('form-update-status-berkas').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('btn-submit-status-berkas');
+            const loadingSpinner = document.getElementById('status-loading-spinner-modal');
+            
+            submitBtn.disabled = true;
+            loadingSpinner.style.display = 'inline-block';
+
+            const formData = new FormData(this);
+            const actionUrl = this.action;
+            const methodSpoofing = document.getElementById('method-spoofing').value;
+            
+            // Karena kita menggunakan FormData, pastikan _method PUT dimasukkan
+            if (methodSpoofing === 'PUT' && !formData.has('_method')) {
+                 formData.append('_method', 'PUT');
+            }
+
+            fetch(actionUrl, {
+                method: 'POST', // Selalu POST di frontend saat menggunakan method spoofing Laravel
+                headers: {
+                    // Jangan set Content-Type untuk FormData, biarkan browser menanganinya (multipart/form-data)
+                    'X-CSRF-TOKEN': formData.get('_token'), 
+                    'Accept': 'application/json',
+                },
+                body: formData // Kirim sebagai FormData
+            })
+            .then(response => {
+                loadingSpinner.style.display = 'none';
+                submitBtn.disabled = false;
+                if (!response.ok) {
+                    return response.json().then(err => { 
+                        if (response.status === 422 && err.errors) {
+                            throw new Error(Object.values(err.errors).flat().join(', '));
+                        }
+                        const errorMessage = err.message || 'Terjadi kesalahan saat memproses permintaan.';
+                        throw new Error(errorMessage); 
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                // POP UP SUKSES MENGGUNAKAN TOAST
+                showToast(data.message, 'success');
+                statusBerkasModal.hide();
+                // Muat ulang halaman untuk update tabel
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000); // Beri jeda 1 detik agar Toast terlihat
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // POP UP GAGAL MENGGUNAKAN TOAST
+                showToast('Gagal menyimpan status berkas. Pesan: ' + error.message, 'error');
+                loadingSpinner.style.display = 'none';
+                submitBtn.disabled = false;
             });
         });
     });
