@@ -26,9 +26,9 @@
     }
 
     $biayaFormatted = 'Rp ' . number_format($biaya, 0, ',', '.');
-    $rekeningNumber = '3680578094';
+    $rekeningNumber = '3151889601';
     $rekeningBank = 'Bank BCA';
-    $rekeningName = 'Dihanusa Tyasahita';
+    $rekeningName = 'M.Hafidz Alrosyid';
 @endphp
 
 <style>
@@ -46,6 +46,24 @@
         --border-color: #e9ecef;
         --input-border: #ced4da;
         --shadow-elevation: 0 4px 12px rgba(0, 0, 0, 0.05);
+        --info-note: #0dcaf0; /* Warna baru untuk Catatan Info */
+    }
+
+    /* === Catatan Khusus SKTM BARU === */
+    .sktm-note {
+        background-color: rgba(13, 202, 240, 0.1); /* Biru Muda Transparan */
+        color: var(--text-primary);
+        border-left: 5px solid var(--info-note);
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: -15px; /* Tarik ke atas agar dekat dengan payment card */
+        margin-bottom: 25px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+    }
+    .sktm-note strong {
+        color: var(--primary-dark);
+        font-weight: 700;
     }
 
     /* === Global Styling === */
@@ -473,19 +491,32 @@
             padding: 20px;
         }
 
+        .payment-progress {
+             /* Mengurangi margin vertikal pada mobile */
+            margin: 15px 0; 
+        }
+
         .progress-step-circle {
-            width: 35px;
-            height: 35px;
-            font-size: 0.9rem;
+            width: 30px; /* Lebih kecil */
+            height: 30px; /* Lebih kecil */
+            font-size: 0.8rem;
         }
 
         .progress-step-label {
-            font-size: 0.75rem;
+            font-size: 0.7rem; /* Label lebih kecil */
+        }
+        
+        .progress-line {
+             top: 15px; /* Sesuaikan posisi line */
         }
 
         .btn-lg {
             padding: 12px 16px;
             font-size: 1rem;
+        }
+        
+        .rekening-number {
+            font-size: 1.4rem; /* Sesuaikan ukuran rekening */
         }
     }
 </style>
@@ -538,8 +569,10 @@
             {{-- Menggunakan $kategori asli yang dilewatkan dari controller --}}
             <input type="hidden" name="kategori" value="{{ $kategori }}"> 
             <input type="hidden" name="biaya_pendaftaran" value="{{ $biaya }}">
+            {{-- Input file tersembunyi untuk bukti pembayaran --}}
             <input type="file" name="bukti_pembayaran" id="bukti_pembayaran_input" class="d-none" required accept=".jpg,.jpeg,.png,.pdf">
             @if ($isSktm)
+                {{-- Input file tersembunyi untuk SKTM --}}
                 <input type="file" name="sktm" id="sktm_input" class="d-none" required accept=".jpg,.jpeg,.png,.pdf">
             @endif
 
@@ -623,6 +656,11 @@
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Tanggal Kunjungan</label>
                     <input type="date" id="tgl_kunjungan" name="tgl_kunjungan" class="form-control" value="{{ old('tgl_kunjungan') }}" required>
+                    <small class="text-info mt-1 d-block">
+                        {{-- Pesan akan diisi oleh JavaScript sesuai tanggal yang valid --}}
+                        <i class="fa-solid fa-calendar-alt me-1"></i>
+                        Pendaftaran hanya bisa untuk kunjungan tepat 3 hari ke depan (H+3, tidak termasuk hari Jumat).
+                    </small>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Jam Kunjungan</label>
@@ -706,6 +744,14 @@
                 </div>
             </div>
 
+            {{-- CATATAN KHUSUS SKTM BARU --}}
+            @if ($isSktm)
+            <div class="sktm-note mb-4">
+                <i class="fa-solid fa-info-circle me-2 text-info"></i>
+                Catatan: Biaya {{ $biayaFormatted }} hanya berlaku untuk 4 bulan pertama. Besaran biaya untuk periode berikutnya akan dikonfirmasi dan diinformasikan kemudian oleh pihak klinik.
+            </div>
+            @endif
+
             {{-- File Upload Zone for Bukti Pembayaran --}}
             <div class="mb-4">
                 <label class="form-label">
@@ -744,7 +790,7 @@
     </div>
 </div>
 
-{{-- MODAL PEMBAYARAN (TIDAK BERUBAH) --}}
+{{-- MODAL PEMBAYARAN --}}
 <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-md modal-dialog-centered">
     <div class="modal-content rounded-3 shadow">
@@ -778,13 +824,14 @@
         </div>
       </div>
       <div class="modal-footer">
+        {{-- Hanya satu tombol Mengerti --}}
         <button type="button" class="btn btn-primary w-100" data-bs-dismiss="modal">Mengerti</button>
       </div>
     </div>
   </div>
 </div>
 
-{{-- MODAL KONFIRMASI --}}
+{{-- MODAL KONFIRMASI (TIDAK BERUBAH) --}}
 <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content rounded-3 shadow">
@@ -841,11 +888,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const isSktmCategory = @json($isSktm);
     const isMasyarakatUmum = @json($isMasyarakatUmum);
 
-    // BARU: Elemen untuk Layanan (Jika bukan Masyarakat Umum)
+    // Elemen Layanan
     const layananSelect = document.getElementById('layanan_select');
     const layananManualGroup = document.getElementById('layanan_manual_group');
     const layananManualInput = document.getElementById('layanan_manual_input');
-    // BARU: Elemen untuk Layanan (Jika Masyarakat Umum)
     const layananManualInputUmum = document.getElementById('layanan_manual_input_umum');
 
     // Input file tersembunyi
@@ -862,43 +908,39 @@ document.addEventListener('DOMContentLoaded', function() {
     const step1 = document.getElementById('step1');
     const step2 = document.getElementById('step2');
     const step3 = document.getElementById('step3');
-    const progressFill = document.getElementById('progress_fill');
     const paymentStatusBadge = document.getElementById('payment_status_badge');
+    const progressFill = document.getElementById('progress_fill');
 
     let paymentModalOpened = false;
 
-    // --- LOGIC LAYANAN (BARU/MODIFIKASI) ---
+    // --- LOGIC LAYANAN (TIDAK BERUBAH) ---
     if (!isMasyarakatUmum) {
         layananSelect.addEventListener('change', function() {
             if (this.value === 'Lainnya') {
                 layananManualGroup.style.display = 'block';
                 layananManualInput.setAttribute('required', 'required');
                 layananManualInput.focus();
-                // Kosongkan input manual jika pengguna kembali memilih dari daftar
                 layananManualInput.value = ''; 
             } else {
                 layananManualGroup.style.display = 'none';
                 layananManualInput.removeAttribute('required');
-                // Masukkan nilai select ke input tersembunyi layanan_id
                 layananManualInput.value = this.value; 
             }
         });
 
-        // Set initial value for hidden input on page load/old input
         if (layananSelect.value && layananSelect.value !== 'Lainnya') {
             layananManualInput.value = layananSelect.value;
         }
 
-    } else {
-        // Logika Masyarakat Umum: hanya input manual yang digunakan, sudah dinamai 'layanan_id'
-        // Cukup memastikan input ini required jika kategori Masyarakat Umum (sudah dilakukan di HTML)
     }
 
-    // --- FILE UPLOAD HANDLERS (TIDAK BERUBAH) ---
+    // --- FILE UPLOAD HANDLERS (DIPERBAIKI KLIK) ---
     
     function setupFileUpload(uploadZone, input, preview, fileNameEl, fileSizeEl) {
         // Click to upload
-        uploadZone.addEventListener('click', () => input.click());
+        uploadZone.addEventListener('click', () => {
+            input.click();
+        });
 
         // Drag and drop
         uploadZone.addEventListener('dragover', (e) => {
@@ -929,13 +971,21 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleFileChange(input, uploadZone, preview, fileNameEl, fileSizeEl) {
         if (input.files.length > 0) {
             const file = input.files[0];
+            const maxFileSize = 1048576; // 1MB in bytes
+            
+            if (file.size > maxFileSize) {
+                showToast('Ukuran file melebihi batas 1MB!', 'error');
+                input.value = ''; // Reset input
+                removeFile(input, uploadZone, preview); 
+                return;
+            }
+
             fileNameEl.textContent = file.name;
             fileSizeEl.textContent = formatFileSize(file.size);
             
             uploadZone.classList.add('has-file');
             preview.classList.add('show');
 
-            // Update progress if bukti pembayaran
             if (input === buktiPembayaranInput) {
                 updateProgress(3);
                 paymentStatusBadge.className = 'payment-status-badge completed';
@@ -950,6 +1000,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const sizes = ['Bytes', 'KB', 'MB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+    }
+    
+    function removeFile(input, uploadZone, preview) {
+        input.value = '';
+        uploadZone.classList.remove('has-file');
+        preview.classList.remove('show');
     }
 
     // Setup file uploads
@@ -973,9 +1029,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Remove file functions (global scope for onclick)
     window.removeBuktiFile = function() {
-        buktiPembayaranInput.value = '';
-        buktiUploadZone.classList.remove('has-file');
-        buktiPreview.classList.remove('show');
+        removeFile(buktiPembayaranInput, buktiUploadZone, buktiPreview);
         updateProgress(paymentModalOpened ? 1 : 0);
         paymentStatusBadge.className = 'payment-status-badge pending';
         paymentStatusBadge.innerHTML = '<i class="fa-solid fa-clock"></i><span>Belum Dibayar</span>';
@@ -983,36 +1037,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
     window.removeSktmFile = function() {
         if (sktmInput) {
-            sktmInput.value = '';
-            sktmUploadZone.classList.remove('has-file');
-            sktmPreview.classList.remove('show');
+            removeFile(sktmInput, sktmUploadZone, sktmPreview);
         }
     };
 
     // --- PROGRESS TRACKING (TIDAK BERUBAH) ---
-    
     function updateProgress(stepNumber) {
-        // Remove all active/completed states
         [step1, step2, step3].forEach(step => {
             step.classList.remove('active', 'completed');
         });
 
-        // Set completed states
         for (let i = 1; i < stepNumber; i++) {
             document.getElementById(`step${i}`).classList.add('completed');
         }
 
-        // Set active state
         if (stepNumber > 0) {
             document.getElementById(`step${stepNumber}`).classList.add('active');
         }
 
-        // Update progress bar
         const progressPercent = ((stepNumber - 1) / 2) * 100;
         progressFill.style.width = progressPercent + '%';
     }
 
-    // Track payment modal opening
     document.getElementById('paymentModal').addEventListener('show.bs.modal', function () {
         if (!paymentModalOpened) {
             paymentModalOpened = true;
@@ -1020,30 +1066,26 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // When modal closes, move to step 2 (assuming they've seen it and will transfer)
     document.getElementById('paymentModal').addEventListener('hidden.bs.modal', function () {
         if (buktiPembayaranInput.files.length === 0) {
             updateProgress(2);
         }
     });
 
-    // --- COPY REKENING FUNCTION (TIDAK BERUBAH) ---
+    // --- COPY REKENING FUNCTION & TOAST (TIDAK BERUBAH) ---
     
     window.copyRekening = function() {
         const rekeningNumber = document.getElementById('rekeningNumberDisplay').getAttribute('data-number');
         const copyBtn = document.getElementById('copyBtn');
         
         navigator.clipboard.writeText(rekeningNumber).then(() => {
-            // Visual feedback
             copyBtn.innerHTML = '<i class="fa-solid fa-check me-2"></i> Berhasil Disalin!';
             copyBtn.classList.remove('btn-outline-primary');
             copyBtn.classList.add('btn-success');
             document.getElementById('rekeningNumberDisplay').classList.add('copy-success');
             
-            // Show toast notification
             showToast('Nomor rekening berhasil disalin!', 'success');
             
-            // Reset after 2 seconds
             setTimeout(() => {
                 copyBtn.innerHTML = '<i class="fa-regular fa-copy me-2"></i> Salin Nomor Rekening';
                 copyBtn.classList.remove('btn-success');
@@ -1056,7 +1098,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     };
 
-    // Toast notification function
     function showToast(message, type) {
         const toastContainer = document.createElement('div');
         toastContainer.style.cssText = `
@@ -1079,8 +1120,7 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => toastContainer.remove(), 300);
         }, 3000);
     }
-
-    // Add animations
+    
     const style = document.createElement('style');
     style.textContent = `
         @keyframes slideIn {
@@ -1094,29 +1134,10 @@ document.addEventListener('DOMContentLoaded', function() {
     `;
     document.head.appendChild(style);
 
-    // --- DATE & TIME VALIDATION (MODIFIED) ---
+    // --- DATE & TIME VALIDATION (LOGIKA H+3 BARU) ---
     
-    function getNextValidDate(currentDate) {
-        // Fungsi pembantu untuk mendapatkan tanggal valid berikutnya (bukan hari Jumat)
-        let nextDate = new Date(currentDate);
-        nextDate.setDate(currentDate.getDate() + 1);
-
-        // Langsung lompat jika hari Jumat
-        if (nextDate.getDay() === 5) { // 5 = Jumat
-            nextDate.setDate(nextDate.getDate() + 1); // Lompat ke Sabtu
-        }
-        return nextDate;
-    }
-
-    function formatDate(date) {
-        const yyyy = date.getFullYear();
-        const mm = String(date.getMonth() + 1).padStart(2, '0');
-        const dd = String(date.getDate()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd}`;
-    }
-    
-    // Fungsi ini TIDAK BERUBAH dari sebelumnya
     function checkWaktuAvailability() { 
+        // Logika check jam yang sudah lewat di hari yang sama
         const today = new Date();
         const selectedDate = new Date(tglKunjunganInput.value);
         
@@ -1134,9 +1155,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             const jamText = option.getAttribute('data-jam');
-            const jamMulaiStr = jamText.split(' - ')[0];  
+            const jamMulaiStr = jamText.split(' - ')[0];  
             const jamMulai = parseInt(jamMulaiStr.split(':')[0]); 
 
+            // Cek hanya jika tanggal kunjungan adalah hari ini
             if (isToday) {
                 if (jamMulai < cutoffHour) {
                     option.disabled = true;
@@ -1158,96 +1180,145 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function formatDate(date) {
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    }
 
-    function setTanggalKunjunganConstraint() {
-        const today = new Date();
-        const todayDay = today.getDay(); // 0=Minggu, 1=Senin, ..., 5=Jumat, 6=Sabtu
-        
-        const minDate = formatDate(today);
-        let maxDateObj = todayDay === 4 // Jika hari ini Kamis (4)
-            ? getNextValidDate(getNextValidDate(today)) // Lusa: Jumat, skip ke Sabtu
-            : getNextValidDate(today); // Besok
+    // Fungsi pembantu untuk mencari tanggal kunjungan yang valid (tepat H+3 dan bukan Jumat)
+    function calculateValidBookingDate() {
+        let today = new Date();
+        let targetDate = new Date(today);
+        let daysAdded = 0;
 
-        const maxDate = formatDate(maxDateObj);
-        
-        tglKunjunganInput.setAttribute('min', minDate);
-        // Kita tidak bisa menggunakan 'max' attribute karena kita perlu lompatan khusus (Jumat)
-        // Jadi, kita hanya membatasi secara manual di event listener
+        // Loop untuk maju 3 hari, sambil melompati Hari Jumat (5)
+        while (daysAdded < 3) {
+            targetDate.setDate(targetDate.getDate() + 1);
+            let dayOfWeek = targetDate.getDay(); // 0=Minggu, ..., 5=Jumat
 
-        tglKunjunganInput.addEventListener('input', checkDateAndValidate);
-        tglKunjunganInput.addEventListener('change', checkDateAndValidate);
-
-        function checkDateAndValidate() {
-            const dateValue = tglKunjunganInput.value;
-            if (!dateValue) return;
-
-            // Membuat objek Date dari nilai input untuk validasi lebih mudah
-            // Menggunakan 'T00:00:00' agar waktu diabaikan dan tetap pada zona lokal
-            const selectedDate = new Date(dateValue + 'T00:00:00'); 
-            const dayOfWeek = selectedDate.getDay(); 
-            const selectedDateString = formatDate(selectedDate);
-
-            // Validasi Hari Jumat
-            if (dayOfWeek === 5) { // 5 = Jumat
-                showToast('Pendaftaran tidak tersedia pada hari Jumat!', 'error');
-                tglKunjunganInput.value = ''; 
-                waktuSelect.selectedIndex = 0;
-                return;
+            if (dayOfWeek !== 5) { // Jika bukan Jumat, hitung sebagai hari maju
+                daysAdded++;
             }
-            
-            // Validasi Batasan 2 Hari (Hari ini dan Besok)
-            if (selectedDateString > maxDate) {
-                showToast(`Tanggal kunjungan maksimal ${maxDate} (Hari Ini dan Besok Yang Bukan Jumat)!`, 'error');
-                tglKunjunganInput.value = '';
-                waktuSelect.selectedIndex = 0;
-                return;
-            }
-
-            checkWaktuAvailability();
+        }
+        
+        // Cek jika hari H+3 (setelah melompati Jumat) ternyata adalah Jumat.
+        // Seharusnya tidak terjadi, tapi jika terjadi, ini berarti tidak ada tanggal valid
+        if (targetDate.getDay() === 5) {
+            return null;
         }
 
-        // Set initial validation
-        if (tglKunjunganInput.value) {
-            checkDateAndValidate();
+        // Khusus untuk H+3: Jika hari ini Selasa, H+3 (Kalender) adalah Jumat.
+        let checkFriday = new Date();
+        checkFriday.setDate(checkFriday.getDate() + 3);
+        if (checkFriday.getDay() === 5) { // Jika hari ini Selasa (2), H+3 jatuh di Jumat (5)
+             return null; 
+        }
+
+        return targetDate;
+    }
+
+
+    function setTanggalKunjunganConstraint() {
+        const validDateObj = calculateValidBookingDate(); 
+        
+        // Reset atribut
+        tglKunjunganInput.setAttribute('min', '');
+        tglKunjunganInput.setAttribute('max', '');
+
+        // Hapus event listener lama
+        tglKunjunganInput.removeEventListener('input', checkDateAndValidate);
+        tglKunjunganInput.removeEventListener('change', checkDateAndValidate);
+
+
+        if (validDateObj) {
+            const validDateString = formatDate(validDateObj);
+            
+            // Set min dan max sama agar hanya tanggal ini yang bisa dipilih
+            tglKunjunganInput.setAttribute('min', validDateString);
+            tglKunjunganInput.setAttribute('max', validDateString);
+            tglKunjunganInput.value = validDateString; // Pre-isi dengan tanggal valid
+
+            // Tampilkan pesan info yang sesuai
+            document.querySelector('.text-info').innerHTML = `
+                <i class="fa-solid fa-calendar-alt me-1"></i>
+                Pendaftaran hanya bisa untuk kunjungan tepat pada tanggal: <strong>${validDateString}</strong> (H+3, tidak termasuk Jumat).
+            `;
+            
+            // Aktifkan input kembali
+            tglKunjunganInput.disabled = false;
+            waktuSelect.disabled = false;
+
+
+            tglKunjunganInput.addEventListener('input', checkDateAndValidate);
+            tglKunjunganInput.addEventListener('change', checkDateAndValidate);
+            
+            // Panggil validasi jam untuk tanggal yang sudah terisi
+            checkWaktuAvailability();
+
+        } else {
+            // Kondisi saat H+3 jatuh di hari Jumat (Contoh: Hari ini Selasa)
+            tglKunjunganInput.value = '';
+            tglKunjunganInput.disabled = true; // Non-aktifkan input tanggal
+            waktuSelect.disabled = true; // Non-aktifkan input jam
+            waktuSelect.selectedIndex = 0; // Reset jam
+            
+            document.querySelector('.text-info').innerHTML = `
+                <i class="fa-solid fa-calendar-alt me-1"></i>
+                <strong class="text-danger">Tidak ada tanggal kunjungan yang tersedia.</strong> Pendaftaran H+3 jatuh pada hari Jumat (Tutup).
+            `;
+            showToast('Hari ini tidak tersedia tanggal kunjungan H+3 yang valid!', 'error');
+        }
+
+
+        function checkDateAndValidate() {
+            if (!validDateObj) return;
+
+            const dateValue = tglKunjunganInput.value;
+            const validDateString = formatDate(validDateObj);
+
+            // Validasi keras: harus sama dengan tanggal yang ditentukan
+            if (dateValue !== validDateString) {
+                showToast(`Tanggal kunjungan harus tepat pada ${validDateString}!`, 'error');
+                tglKunjunganInput.value = validDateString; // Paksa kembali ke tanggal valid
+            }
+            
+            checkWaktuAvailability();
         }
     }
 
     setTanggalKunjunganConstraint();
 
-    // --- UTILITY FUNCTIONS (MODIFIED) ---
-
+    // --- UTILITY FUNCTIONS (TIDAK BERUBAH) ---
     function getLayananText() {
         if (isMasyarakatUmum) {
-            // Ambil langsung dari input manual Masyarakat Umum
             return layananManualInputUmum.value || 'N/A (Masyarakat Umum)'; 
         }
         
-        // Logika Disabilitas (Select/Manual)
         if (layananSelect.value === 'Lainnya') {
             return layananManualInput.value || 'Lainnya (Belum diisi)';
         }
         return layananSelect.value || 'N/A';
     }
 
-    // --- MODAL KONFIRMASI & SUBMIT (MODIFIED) ---
+    // --- MODAL KONFIRMASI & SUBMIT (DIPERBAIKI VALIDASI DISABILITAS) ---
     
     confirmBtn.addEventListener('click', function() {
-        // Logika validasi untuk layanan
         let layananOk = true;
+        
+        // 1. Validasi Layanan
         if (!isMasyarakatUmum) {
-            // Kategori Disabilitas: cek select
             if (layananSelect.value === '') {
                 layananOk = false;
                 layananSelect.focus();
                 showToast('Mohon pilih jenis Layanan!', 'error');
             } else if (layananSelect.value === 'Lainnya' && !layananManualInput.value.trim()) {
-                // Jika pilih 'Lainnya' tapi input manual kosong
                 layananOk = false;
                 layananManualInput.focus();
                 showToast('Mohon isi Layanan Manual!', 'error');
             }
         } else if (!layananManualInputUmum.value.trim()) {
-            // Kategori Masyarakat Umum: cek input manual
             layananOk = false;
             layananManualInputUmum.focus();
             showToast('Mohon isi jenis Layanan!', 'error');
@@ -1255,13 +1326,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (!layananOk) return;
 
-
-        if (!form.checkValidity()) {
+        // 2. Validasi Form Standard & Tanggal Disabled
+        if (!form.checkValidity() || tglKunjunganInput.disabled) {
             form.classList.add('was-validated');
-            const invalidInput = form.querySelector(':invalid');
-            if (invalidInput) {
-                invalidInput.focus();
+            
+            if (tglKunjunganInput.disabled) {
+                 showToast('Tidak ada tanggal kunjungan yang tersedia!', 'error');
             }
+            
             if (buktiPembayaranInput.files.length === 0) {
                 showToast('Mohon unggah Bukti Pembayaran!', 'error');
             } else if (isSktmCategory && sktmInput.files.length === 0) {
@@ -1270,12 +1342,14 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // 3. Validasi Jam Lewat
         if (waktuSelect.options[waktuSelect.selectedIndex] && waktuSelect.options[waktuSelect.selectedIndex].disabled) {
             showToast('Jam kunjungan telah lewat. Pilih jam lain!', 'error');
             waktuSelect.focus();
             return;
         }
 
+        // 4. Validasi File Upload Manual (Redundant, tapi untuk jaga-jaga)
         if (buktiPembayaranInput.files.length === 0) {
             showToast('Mohon unggah Bukti Pembayaran!', 'error');
             return;
@@ -1288,17 +1362,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const formData = new FormData(form);
         const selectedWaktuOption = waktuSelect.options[waktuSelect.selectedIndex];
 
-        // LOGIKA BARU UNTUK MENGISI NILAI LAYANAN_ID DI FORM SEBELUM SUBMIT
+        // Finalisasi nilai layanan_id
         if (!isMasyarakatUmum) {
              if (layananSelect.value !== 'Lainnya') {
-                // Jika bukan 'Lainnya', set nilai input hidden layanan_id = nilai select
                 layananManualInput.value = layananSelect.value;
-            }
-            // Jika 'Lainnya', nilai layanan_id sudah diambil dari layananManualInput
-        } else {
-            // Kategori Masyarakat Umum
-            // Nilai layanan_id sudah ada di layananManualInputUmum.value
-        }
+             }
+        } 
 
 
         document.getElementById('c_nama_pasien').textContent = formData.get('nama_pasien');
@@ -1308,7 +1377,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('c_alamat').textContent = formData.get('alamat');
         document.getElementById('c_pendamping').textContent = formData.get('pendamping');
         
-        // Gunakan fungsi getLayananText yang sudah diperbarui
         document.getElementById('c_layanan_id').textContent = getLayananText(); 
         
         document.getElementById('c_keluhan').textContent = formData.get('keluhan');
@@ -1328,14 +1396,11 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.disabled = true;
         confirmModal.hide();
 
-        // Final check untuk memastikan layanan_id terisi dengan string yang benar
         if (!isMasyarakatUmum) {
              if (layananSelect.value !== 'Lainnya') {
                  document.getElementById('layanan_manual_input').value = layananSelect.value;
              }
-        } else {
-            // Tidak perlu aksi tambahan, karena nama input sudah benar: layanan_id
-        }
+        } 
 
         form.submit();
     });

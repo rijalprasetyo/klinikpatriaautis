@@ -41,15 +41,17 @@ class UserController extends Controller
     {
         $user = Auth::user(); 
 
-        // Relasi 'layanan' dihapus dari 'with()' karena layanan_id kini menyimpan STRING (nama layanan), bukan foreign key.
+        // 1. Tentukan kategori pendaftaran yang perlu dimuat
+        // Memastikan model DataPasien memiliki field kategori_pendaftaran dan status_berkas
         $jadwal = DataPasien::with(['waktu']) 
             ->where('user_id', $user->id)
             ->whereIn('status_pemeriksaan', ['Belum Diperiksa', 'Sedang Diperiksa'])
+            // Memilih kolom yang diperlukan, termasuk kategori_pendaftaran dan status_berkas
+            ->select('id', 'user_id', 'tgl_kunjungan', 'waktu_id', 'nomor_antrian', 'nama_pasien', 'layanan_id', 'status_pemeriksaan', 'kategori_pendaftaran', 'status_berkas') 
             ->orderBy('tgl_kunjungan', 'asc')
             ->get();
 
         $jam_operasional = JamPelayanan::all();
-        // Mengubah nama variabel dari $layanan menjadi $jenis_layanan
         $jenis_layanan = JenisPelayanan::all(); 
 
         return view('home', compact('user', 'jadwal', 'jam_operasional', 'jenis_layanan'));
@@ -57,11 +59,11 @@ class UserController extends Controller
 
     public function success($antrian, Request $request)
     {
-        // Ambil ID pasien dari URL query parameter (misal: .../success/001?id=5)
+        // Ambil ID pasien & kategori dari query parameter (seperti ?id=5&kategori=Masyarakat%20Umum)
         $pasienId = $request->query('id'); 
-        
-        // Kita meneruskan $pasienId ke view
-        return view('pendaftaran.success', compact('antrian', 'pasienId'));
+        $kategori = $request->query('kategori'); 
+        $isMasyarakatUmum = ($kategori === 'Masyarakat Umum');
+        return view('pendaftaran.success', compact('antrian', 'pasienId', 'isMasyarakatUmum'));
     }
 
     // ... di dalam class PendaftaranController extends Controller
@@ -80,7 +82,10 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
-        // Tentukan aturan validasi dasar
+        $kategoriMasyarakatUmum = 'Masyarakat Umum';
+        $isSktmKategori = 'Disabilitas dengan Surat Keterangan Tidak Mampu';
+        $isMasyarakatUmum = ($request->kategori === $kategoriMasyarakatUmum);
+
         $rules = [
             'nama_pasien' => 'required|string|max:255',
             'tgl_lahir' => 'required|date',
@@ -93,38 +98,24 @@ class UserController extends Controller
             'waktu_id' => 'required|integer',
             'bukti_pembayaran' => 'required|file|mimes:jpg,png,pdf|max:1024',
             'kategori' => 'required|string|max:255',
+            'layanan_id' => 'required|string|max:255',
+            'sktm' => 'nullable|file|mimes:jpg,png,pdf|max:1024',
         ];
         
-        // Validasi kondisional berdasarkan kategori (layanan_id sekarang adalah STRING NAMA LAYANAN)
-        if ($request->kategori === 'Masyarakat Umum') {
-            // Masyarakat Umum: Wajib isi input manual layanan_id (string)
-            $rules['layanan_id'] = 'required|string|max:255'; 
-            $rules['sktm'] = 'nullable|file|mimes:jpg,png,pdf|max:1024';
-        } else {
-            // Disabilitas (SKTM / Non-SKTM): Wajib isi layanan_id (string, dari select atau manual)
-            // Kita gunakan nama input yang dikirim dari form (layanan_id)
-            $rules['layanan_id'] = 'required|string|max:255'; 
-            
-            // SKTM wajib upload
-            if ($request->kategori === 'Disabilitas (Dengan SKTM)') {
-                $rules['sktm'] = 'required|file|mimes:jpg,png,pdf|max:1024';
-            } else {
-                $rules['sktm'] = 'nullable|file|mimes:jpg,png,pdf|max:1024';
-            }
+        if ($request->kategori === $isSktmKategori) {
+            $rules['sktm'] = 'required|file|mimes:jpg,png,pdf|max:1024';
         }
 
         try {
-            // Jalankan validasi
             $request->validate($rules);
 
             $tglKunjungan = Carbon::parse($request->tgl_kunjungan);
             
-            // --- 1. Validasi Hari Jumat ---
             if ($tglKunjungan->dayOfWeek === Carbon::FRIDAY) {
                 return back()->with('error', 'Pendaftaran gagal! Kunjungan tidak tersedia pada hari Jumat.')->withInput();
             }
 
-            // --- 2. Validasi Kuota Pasien (Max 3 per Jam) ---
+            // --- Perbaikan Logika Kuota (Harus menghitung semua kategori) ---
             $kuotaMax = 3;
             $countKuotabias = DataPasien::whereDate('tgl_kunjungan', $tglKunjungan->toDateString())
                 ->where('waktu_id', $request->waktu_id)
@@ -134,17 +125,22 @@ class UserController extends Controller
                 return back()->with('error', 'Pendaftaran gagal! Kuota pasien untuk jam tersebut pada tanggal ini sudah penuh (Max ' . $kuotaMax . ' orang). Mohon pilih jam atau tanggal lain.')->withInput();
             }
 
-            // --- 3. Tentukan Nama Layanan ---
-            // $request->layanan_id sudah berisi nama layanan (string) dari input form.
+            $nomorAntrianHarian = null;
+            $statusBerkas = 'Belum Diverifikasi'; 
+
+            if (!$isMasyarakatUmum) {
+                // --- PERBAIKAN AKUMULASI NOMOR ANTRIAN DI SINI ---
+                // Hitung hanya pasien yang BUKAN Masyarakat Umum untuk menentukan nomor urut antrian.
+                $countPasienNonUmum = DataPasien::whereDate('tgl_kunjungan', $tglKunjungan->toDateString())
+                    ->where('kategori_pendaftaran', '!=', $kategoriMasyarakatUmum)
+                    ->count();
+                    
+                $nomorAntrianHarian = str_pad($countPasienNonUmum + 1, 3, '0', STR_PAD_LEFT);
+            } else {
+                $statusBerkas = 'Menunggu';
+            }
+
             $layananNama = $request->layanan_id;
-
-            // --- 4. Proses Penyimpanan Data ---
-            
-            // Perhitungan Nomor Antrian Harian Berdasarkan TGL KUNJUNGAN
-            $countPadaTglKunjungan = DataPasien::whereDate('tgl_kunjungan', $tglKunjungan->toDateString())->count();
-            $nomorAntrianHarian = str_pad($countPadaTglKunjungan + 1, 3, '0', STR_PAD_LEFT);
-
-
             $buktiPath = null;
             if ($request->hasFile('bukti_pembayaran')) {
                 $file = $request->file('bukti_pembayaran');
@@ -161,8 +157,6 @@ class UserController extends Controller
                 $sktmPath = 'sktm/' . $filename;
             }
 
-
-            // Simpan ke Database
             $pasien = DataPasien::create([
                 'nomor_antrian' => $nomorAntrianHarian,
                 'nama_pasien' => $request->nama_pasien,
@@ -172,7 +166,6 @@ class UserController extends Controller
                 'alamat' => $request->alamat,
                 'pendamping' => $request->pendamping,
                 'kategori_pendaftaran' => $request->kategori,
-                // Perubahan: Simpan nama layanan (string) ke kolom layanan_id
                 'layanan_id' => $layananNama, 
                 'waktu_id' => $request->waktu_id,
                 'keluhan' => $request->keluhan,
@@ -180,21 +173,26 @@ class UserController extends Controller
                 'bukti_pembayaran' => $buktiPath,
                 'sktm' => $sktmPath,
                 'status_pemeriksaan' => 'Belum Diperiksa',
-                'status_berkas' => 'Belum Diverifikasi',
+                'status_berkas' => $statusBerkas,
                 'user_id' => Auth::id(),
             ]);
+            
+            $antrianParam = $isMasyarakatUmum ? 'umum' : $nomorAntrianHarian;
+            $message = $isMasyarakatUmum
+                ? 'Pendaftaran berhasil! Data Anda akan divalidasi oleh petugas.'
+                : 'Pendaftaran berhasil! Nomor antrian Anda: ' . $nomorAntrianHarian;
 
-            // Redirect ke Halaman Sukses
             return redirect()->route('pendaftaran.success', [
-                'antrian' => $nomorAntrianHarian,
+                'antrian' => $antrianParam, 
                 'id' => $pasien->id,
+                'kategori' => $request->kategori, 
             ])->with([
-                'success' => 'Pendaftaran berhasil! Nomor antrian Anda: ' . $nomorAntrianHarian,
+                'success' => $message,
                 'nomor_antrian' => $nomorAntrianHarian,
             ]);
 
         } catch (\Exception $e) {
-            if ($e instanceof \Illuminate\Validation\ValidationException) {
+            if ($e instanceof ValidationException) {
                 return back()->withErrors($e->errors())->withInput();
             }
             return back()->with('error', 'Terjadi kesalahan sistem: ' . $e->getMessage())->withInput();

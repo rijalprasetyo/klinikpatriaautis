@@ -6,7 +6,7 @@
     // Definisi Kategori Baru untuk konsistensi
     $kategoriSktm = 'Disabilitas dengan Surat Keterangan Tidak Mampu';
     $kategoriNonSktm = 'Disabilitas tanpa Surat Keterangan Tidak Mampu';
-    $kategoriUmum = 'Masyarakat Umum';
+    $kategoriUmum = 'Masyarakat Umum'; // Kategori yang memiliki logika status berkas
 @endphp
 
 <style>
@@ -111,7 +111,7 @@
     }
 
     /* ======================================================= */
-    /* 6. TABEL JADWAL */
+    /* 6. TABEL JADWAL (DESKTOP) & STATUS STYLES */
     /* ======================================================= */
     .table-container { 
         overflow-x: auto;
@@ -184,6 +184,37 @@
         color: var(--warning); 
     }
 
+    /* --- WARNA KHUSUS STATUS BERKAS --- */
+    /* Abu-abu untuk Pending/Menunggu */
+    .badge-custom.pending-grey { 
+        background: #f1f5f9; /* Slate 100 */
+        color: #64748b; /* Slate 500 */
+    }
+
+    /* Struktur Status untuk Desktop */
+    .status-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        text-align: center;
+    }
+
+    .status-note {
+        font-size: 10px;
+        color: var(--success);
+        font-weight: 500;
+        margin-top: 5px;
+        display: block;
+        max-width: 150px;
+        line-height: 1.3;
+        text-align: center;
+    }
+    .status-note i {
+        margin-right: 3px;
+    }
+
+
     /* ======================================================= */
     /* 6B. CARD JADWAL UNTUK MOBILE */
     /* ======================================================= */
@@ -195,15 +226,16 @@
         background: white;
         border-radius: 12px;
         padding: 1rem;
-        margin-bottom: 1rem;
+        margin-bottom: 0.75rem;
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         border-left: 4px solid var(--primary);
+        position: relative;
     }
 
     .schedule-card-header {
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
         margin-bottom: 0.75rem;
         padding-bottom: 0.75rem;
         border-bottom: 1px solid var(--border);
@@ -226,6 +258,12 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .schedule-queue-info {
+        display: flex;
+        flex-direction: column;
     }
 
     .schedule-queue-label {
@@ -233,14 +271,23 @@
         color: var(--text-secondary);
         font-weight: 500;
     }
+    
+    .schedule-patient-name {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+    }
 
     .schedule-card-body {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.75rem;
+        grid-template-columns: 1fr; 
+        gap: 0.5rem;
         margin-bottom: 0.75rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border);
     }
-
+    
     .schedule-info-item {
         display: flex;
         flex-direction: column;
@@ -259,23 +306,14 @@
         font-weight: 600;
     }
 
-    .schedule-patient-name {
-        font-size: 0.95rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: 0.25rem;
-    }
-
     .schedule-service {
         font-size: 0.8rem;
         color: var(--text-secondary);
     }
 
     .schedule-card-footer {
-        padding-top: 0.75rem;
-        border-top: 1px solid var(--border);
         display: flex;
-        justify-content: space-between;
+        justify-content: flex-start;
         align-items: center;
     }
 
@@ -653,6 +691,33 @@
             font-size: 0.7rem;
             line-height: 1.3;
         }
+        
+        /* Jadwal Card */
+        .schedule-card-header {
+            flex-direction: column;
+            align-items: flex-start;
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0.5rem;
+        }
+        
+        .status-group {
+            align-items: flex-start;
+            text-align: left;
+            order: -1; 
+            margin-bottom: 0.75rem;
+        }
+
+        .status-note {
+            font-size: 9px;
+            max-width: none;
+            text-align: left;
+            margin-top: 5px;
+        }
+        
+        .schedule-card-body {
+            grid-template-columns: 1fr 1fr;
+        }
     }
 
     /* ======================================================= */
@@ -692,6 +757,7 @@
         }
         
         .schedule-card-body {
+            grid-template-columns: 1fr; /* Kembali ke 1 kolom untuk mobile kecil */
             gap: 0.5rem;
         }
         
@@ -711,42 +777,30 @@
             font-size: 0.75rem;
         }
         
-        /* Kategori */
-        .card-category-wrapper {
-            padding: 0.875rem;
-        }
-        
-        .card-category-wrapper h2 {
-            font-size: 15px;
-        }
-        
-        .card-category-wrapper > p {
-            font-size: 0.75rem;
-        }
-        
-        .row > .col-lg-4.col-md-6 {
-            flex: 0 0 50%;
-            max-width: 50%;
+        /* Kategori: DIUBAH MENJADI 1 KOLOM */
+        .row > .col-lg-4.col-md-6,
+        .row > .col-lg-4.col-md-12.col-12 { /* Memastikan semua kolom menjadi 1 kolom */
+            flex: 0 0 100%;
+            max-width: 100%;
         }
         
         .category-card {
-            padding: 0.875rem 0.625rem;
+            padding: 1rem; /* Sedikit lebih lega */
         }
         
         .category-icon {
-            width: 50px;
-            height: 50px;
-            margin-bottom: 0.625rem;
+            width: 60px; /* Diperbesar sedikit dari 50px */
+            height: 60px;
+            margin-bottom: 0.75rem;
         }
         
         .category-card h3 {
-            font-size: 11px;
-            margin-bottom: 0.625rem;
+            font-size: 14px; /* Diperbesar agar mudah dibaca */
+            margin-bottom: 0.75rem;
         }
         
         .btn-primary-modern {
-            padding: 0.5rem 0.875rem;
-            font-size: 0.75rem;
+            font-size: 0.85rem; /* Ukuran tombol lebih nyaman */
         }
         
         /* Jam Operasional: 2 Kolom untuk Keterbacaan */
@@ -836,12 +890,39 @@
                                 <th class="text-center">Antrian</th>
                                 <th>Tanggal</th>
                                 <th>Jam</th>
-                                <th>Pasien</th>
+                                <th>Pasien & Layanan</th>
                                 <th class="text-center">Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse ($jadwal as $data)
+                                @php
+                                    $isUmum = ($data->kategori_pendaftaran ?? '') == $kategoriUmum;
+                                    $statusBerkas = $data->status_berkas ?? 'Menunggu';
+                                    $statusPemeriksaan = $data->status_pemeriksaan ?? 'Belum Diperiksa';
+                                    
+                                    // Tentukan Status Utama yang akan ditampilkan
+                                    $statusTampil = '';
+                                    $badgeClass = 'warning'; // Default untuk pemeriksaan atau status berkas belum verifikasi
+                                    $showNote = false;
+                                    
+                                    if ($isUmum) {
+                                        // LOGIKA KHUSUS MASYARAKAT UMUM
+                                        if ($statusBerkas == 'Sudah Diverifikasi') {
+                                            $statusTampil = $statusPemeriksaan; // Tampilkan status pemeriksaan
+                                            $badgeClass = ($statusPemeriksaan == 'Sudah Diperiksa') ? 'success' : 'warning';
+                                            $showNote = true; // Tampilkan catatan verifikasi
+                                        } else {
+                                            $statusTampil = $statusBerkas; // Tampilkan status berkas
+                                            $badgeClass = 'pending-grey';
+                                        }
+                                    } else {
+                                        // LOGIKA KATEGORI PRIORITAS (Hanya tampilkan status pemeriksaan)
+                                        $statusTampil = $statusPemeriksaan;
+                                        $badgeClass = ($statusPemeriksaan == 'Sudah Diperiksa') ? 'success' : 'warning';
+                                    }
+
+                                @endphp
                                 <tr>
                                     <td class="text-center">
                                         <div class="queue-number">{{ $data->nomor_antrian }}</div>
@@ -855,14 +936,21 @@
                                         <small class="text-muted">{{ $data->layanan_id ?? '-' }}</small>
                                     </td>
                                     <td class="text-center">
-                                        {{-- Asumsi badge warning untuk status pending/baru --}}
-                                        <span class="badge-custom warning">{{ $data->status_pemeriksaan }}</span> 
+                                        <div class="status-group">
+                                            <span class="badge-custom {{ $badgeClass }}">{{ $statusTampil }}</span> 
+                                            
+                                            @if ($showNote)
+                                                <span class="status-note text-success">
+                                                    <i class="fa-solid fa-check-circle"></i> Berkas anda sudah diverifikasi dan bisa melakukan pemeriksaan sesuai jadwal
+                                                </span>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
                                     <td colspan="5" class="text-center text-muted">
-                                        Belum ada jadwal pelayanan.
+                                        Belum ada jadwal pelayanan mendatang.
                                     </td>
                                 </tr>
                             @endforelse
@@ -873,34 +961,75 @@
                 {{-- Mobile: Card View --}}
                 <div class="mobile-schedule-container">
                     @forelse ($jadwal as $data)
+                        @php
+                            $isUmum = ($data->kategori_pendaftaran ?? '') == $kategoriUmum;
+                            $statusBerkas = $data->status_berkas ?? 'Menunggu';
+                            $statusPemeriksaan = $data->status_pemeriksaan ?? 'Belum Diperiksa';
+                            
+                            // Tentukan Status Utama yang akan ditampilkan
+                            $statusTampil = '';
+                            $badgeClass = 'warning'; 
+                            $showNote = false;
+                            
+                            if ($isUmum) {
+                                if ($statusBerkas == 'Sudah Diverifikasi') {
+                                    $statusTampil = $statusPemeriksaan;
+                                    $badgeClass = ($statusPemeriksaan == 'Sudah Diperiksa') ? 'success' : 'warning';
+                                    $showNote = true;
+                                } else {
+                                    $statusTampil = $statusBerkas;
+                                    $badgeClass = 'pending-grey';
+                                }
+                            } else {
+                                $statusTampil = $statusPemeriksaan;
+                                $badgeClass = ($statusPemeriksaan == 'Sudah Diperiksa') ? 'success' : 'warning';
+                            }
+                        @endphp
+
                         <div class="schedule-card">
                             <div class="schedule-card-header">
+                                
+                                {{-- Status di Mobile Card --}}
+                                <div class="status-group">
+                                    <span class="badge-custom {{ $badgeClass }}">{{ $statusTampil }}</span> 
+                                    
+                                    @if ($showNote)
+                                        <span class="status-note text-success">
+                                            <i class="fa-solid fa-check-circle"></i> Berkas anda sudah diverifikasi dan bisa melakukan pemeriksaan sesuai jadwal
+                                        </span>
+                                    @endif
+                                </div>
+
                                 <div class="schedule-queue">
                                     <div class="schedule-queue-number">{{ $data->nomor_antrian }}</div>
-                                    <span class="schedule-queue-label">Antrian</span>
+                                    <div class="schedule-queue-info">
+                                        <span class="schedule-queue-label">Antrian</span>
+                                        <span class="schedule-patient-name m-0">{{ $data->nama_pasien }}</span>
+                                    </div>
                                 </div>
-                                <span class="badge-custom warning">{{ $data->status_pemeriksaan }}</span>
                             </div>
                             
                             <div class="schedule-card-body">
                                 <div class="schedule-info-item">
-                                    <span class="schedule-info-label">Tanggal</span>
+                                    <span class="schedule-info-label">Tanggal Kunjungan</span>
                                     <span class="schedule-info-value">{{ \Carbon\Carbon::parse($data->tgl_kunjungan)->translatedFormat('d M Y') }}</span>
                                 </div>
                                 <div class="schedule-info-item">
-                                    <span class="schedule-info-label">Jam</span>
+                                    <span class="schedule-info-label">Jam Pelayanan</span>
                                     <span class="schedule-info-value">
                                         {{ $data->waktu ? $data->waktu->jam_mulai . ' - ' . $data->waktu->jam_selesai : 'N/A' }}
                                     </span>
                                 </div>
-                            </div>
-                            
-                            <div class="schedule-card-footer">
-                                <div>
-                                    <div class="schedule-patient-name">{{ $data->nama_pasien }}</div>
-                                    <div class="schedule-service">{{ $data->layanan_id ?? '-' }}</div>
+                                <div class="schedule-info-item">
+                                    <span class="schedule-info-label">Layanan</span>
+                                    <span class="schedule-info-value">{{ $data->layanan_id ?? '-' }}</span>
+                                </div>
+                                <div class="schedule-info-item">
+                                    <span class="schedule-info-label">Kategori Pendaftar</span>
+                                    <span class="schedule-info-value">{{ $data->kategori_pendaftaran ?? 'N/A' }}</span>
                                 </div>
                             </div>
+                            
                         </div>
                     @empty
                         <div class="text-center text-muted py-4">
@@ -913,20 +1042,32 @@
         </div>
     </section>
 
-    {{-- SECTION 2: Pilih Kategori Pendaftaran (MODIFIED) --}}
+    {{-- SECTION 2: Pilih Kategori Pendaftaran --}}
     <section id="pendaftaran" class="bg-light-gray">
         <div class="card-category-wrapper">
             <h2 class="text-center">Pilih Kategori Pendaftaran</h2>
-            <p class="text-center">Pilih salah satu kategori di bawah ini untuk memulai proses pendaftaran Anda.</p>
-            
-            <div class="row g-3">
+            <p class="text-center text-muted mb-5">
+                Pilih salah satu kategori di bawah ini untuk memulai proses pendaftaran Anda. Layanan **Prioritas Utama** diberikan kepada disabilitas dari keluarga prasejahtera (dengan SKTM).
+            </p>
+
+            <div class="row g-4">
+                {{-- KATEGORI 1: PRIORITAS UTAMA (DISABILITAS SKTM) --}}
                 <div class="col-lg-4 col-md-6 col-12">
-                    <div class="category-card d-flex flex-column text-center">
-                        <div class="category-icon">
-                            <img src="https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?q=80&w=400&auto=format&fit=crop" alt="Disabilitas SKTM">
+                    <div class="category-card d-flex flex-column text-center h-100">
+                        
+                        <div class="text-center mb-3">
+                            <span class="badge rounded-pill px-3 py-2 fw-bold text-white" style="background-color: #0570b6; font-size: 0.9em;">
+                                PRIORITAS UTAMA
+                            </span>
                         </div>
-                        {{-- Menggunakan penamaan baru dan passing ke URL yang baru --}}
+
+                        <div class="category-icon mb-3">
+                            <img src="https://res.cloudinary.com/djhikwue3/image/upload/v1763283011/IMG-20251116-WA0016_u7rn8f.jpg" alt="Disabilitas SKTM">
+                        </div>
+                        
                         <h3>Disabilitas dengan<br>Surat Keterangan Tidak Mampu</h3>
+                        <p class="text-muted small mb-4">Layanan rehabilitasi bagi keluarga prasejahtera</p>
+
                         <button 
                             class="btn-primary-modern mt-auto" 
                             onclick="window.location.href='/pendaftaran?kategori={{ $kategoriSktm }}'">
@@ -934,13 +1075,24 @@
                         </button>
                     </div>
                 </div>
+
+                {{-- KATEGORI 2: PRIORITAS KEDUA (DISABILITAS NON-SKTM) --}}
                 <div class="col-lg-4 col-md-6 col-12">
-                    <div class="category-card d-flex flex-column text-center">
-                        <div class="category-icon">
-                            <img src="https://images.unsplash.com/photo-1599058917212-d750089bc07e?q=80&w=400&auto=format&fit=crop" alt="Disabilitas Non-SKTM">
+                    <div class="category-card d-flex flex-column text-center h-100">
+                        
+                        <div class="text-center mb-3">
+                            <span class="badge rounded-pill px-3 py-2 fw-bold text-white" style="background-color: #ffa500; font-size: 0.9em;">
+                                PRIORITAS KEDUA
+                            </span>
                         </div>
-                        {{-- Menggunakan penamaan baru dan passing ke URL yang baru --}}
+
+                        <div class="category-icon mb-3">
+                            <img src="https://res.cloudinary.com/djhikwue3/image/upload/v1763283010/IMG-20251116-WA0018_idxrer.jpg" alt="Disabilitas Non-SKTM">
+                        </div>
+                        
                         <h3>Disabilitas tanpa<br>Surat Keterangan Tidak Mampu</h3>
+                        <p class="text-muted small mb-4">Layanan dengan biaya terjangkau untuk kategori non-prasejahtera</p>
+
                         <button 
                             class="btn-primary-modern mt-auto"
                             onclick="window.location.href='/pendaftaran?kategori={{ $kategoriNonSktm }}'">
@@ -948,13 +1100,24 @@
                         </button>
                     </div>
                 </div>
+
+                {{-- KATEGORI 3: NON PRIORITAS (MASYARAKAT UMUM) --}}
                 <div class="col-lg-4 col-md-12 col-12">
-                    <div class="category-card d-flex flex-column text-center">
-                        <div class="category-icon">
-                            <img src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?q=80&w=400&auto=format&fit=crop" alt="Masyarakat Umum">
+                    <div class="category-card d-flex flex-column text-center h-100">
+
+                        <div class="text-center mb-3">
+                            <span class="badge rounded-pill px-3 py-2 fw-bold text-white" style="background-color: #6c757d; font-size: 0.9em;">
+                                NON PRIORITAS
+                            </span>
                         </div>
-                        {{-- Menggunakan penamaan baru dan passing ke URL yang baru --}}
+
+                        <div class="category-icon mb-3">
+                            <img src="https://res.cloudinary.com/djhikwue3/image/upload/v1763283011/IMG-20251116-WA0020_v82mly.jpg" alt="Masyarakat Umum">
+                        </div>
+                        
                         <h3>Masyarakat<br>Umum</h3>
+                        <p class="text-muted small mb-4">Layanan fisioterapi umum sesuai ketersediaan kuota</p>
+                        
                         <button 
                             class="btn-primary-modern mt-auto"
                             onclick="window.location.href='/pendaftaran?kategori={{ $kategoriUmum }}'">
@@ -1004,7 +1167,6 @@
         <div class="card-modern">
             <div class="card-body p-4">
                 <div class="services-grid">
-                    {{-- Menggunakan $jenis_layanan sesuai dengan controller home() yang sudah diperbaiki --}}
                     @foreach ($jenis_layanan as $item)
                         <div class="service-card">
                             <div class="service-icon">
@@ -1015,7 +1177,6 @@
                         </div>
                     @endforeach
 
-                    {{-- Menggunakan $jenis_layanan di pengecekan isEmpty() --}}
                     @if(isset($jenis_layanan) && $jenis_layanan->isEmpty())
                         <div class="text-center text-muted" style="grid-column: 1 / -1;">
                             Belum ada data layanan yang tersedia saat ini.

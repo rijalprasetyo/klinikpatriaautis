@@ -186,7 +186,7 @@ return new class extends Migration
 
         Schema::create('data_pasien', function (Blueprint $table) {
             $table->id();
-            $table->string('nomor_antrian');
+            $table->string('nomor_antrian')->nullable();
             $table->string('nama_pasien');
             $table->date('tgl_lahir')->nullable();
             $table->enum('jenis_kelamin', ['Laki-laki', 'Perempuan']);

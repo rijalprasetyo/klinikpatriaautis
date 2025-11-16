@@ -8,6 +8,7 @@ use App\Models\DataPasien;
 use Carbon\Carbon; 
 use App\Models\User;   
 use App\Models\Dokter; 
+use Illuminate\Support\Facades\DB;
 use App\Models\Admin;
 use App\Models\JenisPelayanan; 
 use Illuminate\Support\Facades\Validator;
@@ -41,23 +42,60 @@ class AdminController extends Controller
     {
         $admin = Auth::guard('admin')->user();
         
-        $today = Carbon::today()->toDateString();
+        $today = Carbon::today();
+        $yesterday = $today->copy()->subDay();
+        $tomorrow = $today->copy()->addDay();
+        $todayString = $today->toDateString();
 
         // 1. Pasien Hari Ini (Status: Belum Diperiksa)
-        $belumDiperiksaHariIni = DataPasien::whereDate('tgl_kunjungan', $today)
-                                           ->where('status_pemeriksaan', 'Belum Diperiksa')
-                                           ->count();
+        $belumDiperiksaHariIni = DataPasien::whereDate('tgl_kunjungan', $todayString)
+                                            ->where('status_pemeriksaan', 'Belum Diperiksa')
+                                            ->count();
 
-        // 2. Berkas Belum Diverifikasi (Status: Belum Diverifikasi, TIDAK TERBATAS HARI INI)
+        // 2. Berkas Belum Diverifikasi
         $berkasBelumDiverifikasi = DataPasien::where('status_berkas', 'Belum Diverifikasi')
-                                             ->count();
+                                                ->count();
 
         // 3. Pasien Hari Ini (Status: Selesai Diperiksa)
-        $selesaiDiperiksaHariIni = DataPasien::whereDate('tgl_kunjungan', $today)
-                                             ->where('status_pemeriksaan', 'Selesai Diperiksa')
-                                             ->count();
+        $selesaiDiperiksaHariIni = DataPasien::whereDate('tgl_kunjungan', $todayString)
+                                                ->where('status_pemeriksaan', 'Selesai Diperiksa')
+                                                ->count();
+        
+        // --- DATA JADWAL PASIEN (BARU) ---
 
-        return view('admin.dashboard', compact('admin', 'belumDiperiksaHariIni', 'berkasBelumDiverifikasi', 'selesaiDiperiksaHariIni'));
+        // Query dasar dengan relasi waktu dan urutan waktu kunjungan
+        $baseQuery = DataPasien::with('waktu') 
+                                    ->orderBy('tgl_kunjungan', 'asc')
+                                    ->orderBy('waktu_id', 'asc');
+
+        // Pasien Kemarin
+        $pasienKemarin = $baseQuery->clone()
+                                    ->whereDate('tgl_kunjungan', $yesterday->toDateString())
+                                    ->get();
+
+        // Pasien Hari Ini
+        $pasienHariIni = $baseQuery->clone()
+                                    ->whereDate('tgl_kunjungan', $todayString)
+                                    ->get();
+                                    
+        // Pasien Besok
+        $pasienBesok = $baseQuery->clone()
+                                ->whereDate('tgl_kunjungan', $tomorrow->toDateString())
+                                ->get();
+
+
+        return view('admin.dashboard', compact(
+            'admin', 
+            'belumDiperiksaHariIni', 
+            'berkasBelumDiverifikasi', 
+            'selesaiDiperiksaHariIni',
+            'pasienKemarin',
+            'pasienHariIni',
+            'pasienBesok',
+            'today',
+            'yesterday',
+            'tomorrow'
+        ));
     }
 
     public function dataPasienScheduled(Request $request)
@@ -66,71 +104,59 @@ class AdminController extends Controller
         
         $today = Carbon::today()->toDateString();
         
-        // Ambil nilai filter dari request
         $filterDate = $request->query('date');
         $filterStatusBerkas = $request->query('status_berkas');
         $filterStatusPemeriksaan = $request->query('status_pemeriksaan'); 
         $filterNamaPasien = $request->query('nama_pasien'); 
 
-        // =======================================================
-        // 1. Data Pasien HARI INI
-        // =======================================================
-        // PERBAIKAN: Menghapus 'layanan' dari with()
+        $excludedCategory = 'Masyarakat Umum';
+
         $queryHariIni = DataPasien::with(['waktu']) 
             ->whereDate('tgl_kunjungan', $today)
+            ->where('kategori_pendaftaran', '!=', $excludedCategory)
             ->orderBy('waktu_id', 'asc');
 
-        // Filter Status Pemeriksaan (Hari Ini)
         if ($filterStatusPemeriksaan && in_array($filterStatusPemeriksaan, ['Belum Diperiksa', 'Sudah Diperiksa', 'Sedang Diperiksa'])) {
             $queryHariIni->where('status_pemeriksaan', $filterStatusPemeriksaan);
         }
 
-        // Filter Nama Pasien (Hari Ini)
         if ($filterNamaPasien) {
             $queryHariIni->where('nama_pasien', 'like', '%' . $filterNamaPasien . '%');
         }
 
         $pasienHariIni = $queryHariIni->get();
 
-        // =======================================================
-        // 2. Data Pasien MENDATANG
-        // =======================================================
-        // PERBAIKAN: Menghapus 'layanan' dari with()
         $queryMendatang = DataPasien::with(['waktu']) 
-            ->where('tgl_kunjungan', '>', $today) // Ambil semua data setelah hari ini
+            ->where('tgl_kunjungan', '>', $today)
+            ->where('kategori_pendaftaran', '!=', $excludedCategory)
             ->orderBy('tgl_kunjungan', 'asc')
             ->orderBy('waktu_id', 'asc');
             
-        // --- FILTER TANGGAL KHUSUS (Jika diminta) ---
         if ($filterDate && $filterDate > $today) {
             $queryMendatang->whereDate('tgl_kunjungan', $filterDate);
         }
         
-        // --- FILTER STATUS BERKAS ---
         if ($filterStatusBerkas && in_array($filterStatusBerkas, ['Belum Diverifikasi', 'Sudah Diverifikasi'])) {
             $queryMendatang->where('status_berkas', $filterStatusBerkas);
         }
         
-        // Filter Status Pemeriksaan (Mendatang)
         if ($filterStatusPemeriksaan && in_array($filterStatusPemeriksaan, ['Belum Diperiksa', 'Sudah Diperiksa', 'Sedang Diperiksa'])) {
             $queryMendatang->where('status_pemeriksaan', $filterStatusPemeriksaan);
         }
 
-        // Filter Nama Pasien (Mendatang)
         if ($filterNamaPasien) {
             $queryMendatang->where('nama_pasien', 'like', '%' . $filterNamaPasien . '%');
         }
 
         $pasienMendatang = $queryMendatang->get();
         
-        // Ambil daftar unik tanggal mendatang untuk dropdown filter
         $availableDates = DataPasien::select('tgl_kunjungan')
-                                    ->where('tgl_kunjungan', '>', $today)
-                                    ->distinct()
-                                    ->orderBy('tgl_kunjungan', 'asc')
-                                    ->pluck('tgl_kunjungan');
+                                        ->where('tgl_kunjungan', '>', $today)
+                                        ->where('kategori_pendaftaran', '!=', $excludedCategory)
+                                        ->distinct()
+                                        ->orderBy('tgl_kunjungan', 'asc')
+                                        ->pluck('tgl_kunjungan');
         
-        // Definisikan filter saat ini
         $currentFilterDate = $filterDate;
         $currentFilterStatusBerkas = $filterStatusBerkas;
         $currentFilterStatusPemeriksaan = $filterStatusPemeriksaan;
@@ -568,6 +594,97 @@ class AdminController extends Controller
 
         return response()->json(['status' => 'success', 'data' => $pasien]);
     }
+
+    public function riwayatPasienMasyarakatUmum(Request $request) 
+    {
+        $filterNamaPasien = $request->input('nama_pasien');
+        $filterStatusBerkas = $request->input('status_berkas');
+
+        $query = DataPasien::where('kategori_pendaftaran', 'Masyarakat Umum');
+
+        // 1. Filter Pencarian Nama
+        if ($filterNamaPasien) {
+            $query->where('nama_pasien', 'like', '%' . $filterNamaPasien . '%');
+        }
+
+        // 2. Filter Status Berkas
+        if ($filterStatusBerkas) {
+            $query->where('status_berkas', $filterStatusBerkas);
+        }
+
+        // 3. Pengurutan Prioritas Kustom (WAJIB DENGAN STRING MENTAH/RAW)
+        // Urutan: 1. Menunggu, 2. Sudah Diverifikasi, 3. Ditolak
+        $query->orderByRaw("CASE 
+            WHEN status_berkas = 'Menunggu' THEN 1
+            WHEN status_berkas = 'Sudah Diverifikasi' THEN 2
+            WHEN status_berkas = 'Ditolak' THEN 3
+            ELSE 4 
+        END");
+        
+        // Urutan kedua: Tgl Kunjungan terbaru (opsional, tetapi direkomendasikan)
+        $query->orderBy('tgl_kunjungan', 'desc'); 
+
+        $dataPasien = $query->get();
+
+        return view('admin.verifikasi-umum', compact('dataPasien', 'filterNamaPasien', 'filterStatusBerkas')); 
+    }
+
+    // ... (fungsi getPasienDetail dan updetMasyarakatUmum tidak berubah) ...
+    
+    // 4. Tambahkan Fungsi Aksi Massal (updetMassal)
+    public function updetMassal(Request $request)
+    {
+        $request->validate([
+            'pasien_ids' => 'required|array',
+            'pasien_ids.*' => 'exists:data_pasien,id', // Ganti 'data_pasien' dengan nama tabel Anda
+            'status_berkas_massal' => 'required|in:Sudah Diverifikasi,Menunggu,Ditolak',
+        ]);
+
+        try {
+            DataPasien::whereIn('id', $request->pasien_ids)->update([
+                'status_berkas' => $request->status_berkas_massal
+            ]);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['status' => 'success', 'message' => 'Status berkas massal berhasil diperbarui!']);
+            }
+            
+            return redirect()->back()->with('success', count($request->pasien_ids) . ' status berkas pasien berhasil diperbarui menjadi ' . $request->status_berkas_massal . '.');
+
+        } catch (\Exception $e) {
+             if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['status' => 'error', 'message' => 'Gagal memperbarui status massal. Pesan Error: ' . $e->getMessage()], 500);
+            }
+            return redirect()->back()->with('error', 'Gagal memperbarui status berkas massal. Pesan Error: ' . $e->getMessage());
+        }
+    }
+
+    public function updetMasyarakatUmum(Request $request, $id)
+    {
+        $request->validate([
+            'status_berkas' => 'required|in:Sudah Diverifikasi,Menunggu,Ditolak',
+        ]);
+
+        try {
+            $pasien = DataPasien::findOrFail($id);
+            $pasien->status_berkas = $request->status_berkas;
+            $pasien->save();
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['status' => 'success', 'message' => 'Status berkas berhasil diperbarui!']);
+            }
+
+            return redirect()->back()->with('success', 'Status berkas pasien ' . $pasien->nama_pasien . ' berhasil diperbarui menjadi ' . $request->status_berkas . '.');
+
+        } catch (\Exception $e) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['status' => 'error', 'message' => 'Gagal memperbarui status. Pesan Error: ' . $e->getMessage()], 500);
+            }
+            return redirect()->back()->with('error', 'Gagal memperbarui status berkas. Pesan Error: ' . $e->getMessage());
+        }
+    }
+
+    
     
 
 

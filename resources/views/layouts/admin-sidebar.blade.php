@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Klinik Patria</title>
-    <link rel="icon" type="image/x-icon" href="{{ asset('assets/logoklinik.png') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('assets/logoklinik1.png') }}">
 
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -183,6 +183,7 @@
             </div>
             <div class="nav-links">
                 <a href="{{ route('admin.dashboard') }}" class="{{ Request::routeIs('admin.dashboard') ? 'active' : '' }}"><i class="fa-solid fa-house"></i> Beranda</a>
+                <a href="{{ route('admin.verifikasi-umum') }}" class="{{ Request::routeIs('admin.verifikasi-umum') ? 'active' : '' }}"><i class="fas fa-user-check me-2"></i> Listing Hold</a>
                 <a href="{{ route('admin.data-pasien') }}" class="{{ Request::routeIs('admin.data-pasien') ? 'active' : '' }}"><i class="fa-solid fa-users"></i> Data Pasien</a>
                 <a href="{{ route('admin.verifikasi-berkas') }}"class="{{ Request::routeIs('admin.verifikasi-berkas') ? 'active' : '' }}"> <i class="fa-solid fa-file-alt me-2"></i> Verifikasi</a>
                 <a href="{{ route('admin.riwayat-pasien') }}"class="{{ Request::routeIs('admin.riwayat-pasien') ? 'active' : '' }}"> <i class="fa-solid fa-history"></i> Riwayat</a>

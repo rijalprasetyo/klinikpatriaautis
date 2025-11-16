@@ -14,6 +14,7 @@
             --bg-light: #f8f9fa;
             --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
             --secondary: #6c757d; /* Definisi warna sekunder */
+            --warning-light: #fff3cd; /* Warna untuk pesan validasi */
         }
 
         body {
@@ -53,6 +54,17 @@
             color: var(--primary);
             margin: 5px 0 0;
             letter-spacing: 2px;
+        }
+        
+        /* Box Peringatan Khusus Umum */
+        .alert-validation-umum {
+            background-color: var(--warning-light);
+            border-color: #ffe8a1;
+            color: #664d03;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 0.95rem;
         }
 
         /* Pesan Keterangan */
@@ -97,15 +109,35 @@
         <i class="fas fa-check-circle icon-success"></i>
         <h4 class="text-success fw-bold">Pendaftaran Berhasil!</h4>
         
-        <p class="mt-3 mb-0 text-muted">Nomor antrian Anda adalah:</p>
-        <div class="antrian-box">
-            <h2>{{ $antrian }}</h2>
-        </div>
+        @if ($isMasyarakatUmum)
+            {{-- Konten Khusus Masyarakat Umum --}}
+            <p class="mt-3 mb-0 text-muted">Data pendaftaran Anda telah diterima.</p>
+            
+            <div class="alert-validation-umum text-start">
+                <p class="fw-bold mb-1">
+                    <i class="fas fa-hourglass-half me-2"></i> Pendaftaran Anda (Masyarakat Umum)
+                </p>
+                <p class="mb-2">
+                    Anda akan **divalidasi H-1** oleh petugas kami. Mohon diingat bahwa klinik kami memprioritaskan disabilitas, SKTM, dan non-SKTM.
+                </p>
+                <p class="mb-0">
+                    Jika pada proses validasi Anda **tidak mendapatkan slot pemeriksaan**, kami akan melakukan **refund maksimal H+14**, atau mencarikan jadwal pengganti sesuai ketersediaan yang ada.
+                </p>
+            </div>
+
+        @else
+            {{-- Konten Khusus Disabilitas (SKTM/Non-SKTM) --}}
+            <p class="mt-3 mb-0 text-muted">Nomor antrian Anda adalah:</p>
+            <div class="antrian-box">
+                {{-- $antrian akan berisi nomor antrian (misalnya 001) --}}
+                <h2>{{ $antrian }}</h2>
+            </div>
+        @endif
 
         <div class="d-grid gap-2 mt-4">
-            {{-- Cek apakah variabel $pasienId tersedia dari Controller/URL --}}
-            @if(isset($pasienId))
-                {{-- Tambahkan ID 'downloadBtn' --}}
+            
+            @if(isset($pasienId) && !$isMasyarakatUmum)
+                {{-- Tombol Download hanya muncul untuk Disabilitas yang mendapat Nomor Antrian --}}
                 <a href="{{ route('pendaftaran.download', ['id' => $pasienId]) }}" class="btn btn-download btn-lg" id="downloadBtn">
                     <i class="fas fa-file-pdf me-2"></i> Unduh Tiket Pendaftaran (PDF)
                 </a>
@@ -119,7 +151,9 @@
         {{-- Tambahan Teks Profesional dan Elegan --}}
         <div class="info-message">
             <p class="fw-bold mb-1">Terima kasih telah mendaftar di layanan fisioterapi Klinik Patria.</p>
-            <p class="mb-2">Silakan bawa atau tunjukkan **tiket pendaftaran ini** saat berkunjung ke Klinik Patria pada jadwal yang telah Anda pilih.</p>
+            @if (!$isMasyarakatUmum)
+                <p class="mb-2">Silakan bawa atau tunjukkan **tiket pendaftaran ini** saat berkunjung ke Klinik Patria pada jadwal yang telah Anda pilih.</p>
+            @endif
             <p class="text-secondary mb-0">Apabila terdapat perubahan jadwal atau informasi tambahan, tim kami akan menghubungi Anda melalui WhatsApp atau email yang terdaftar.</p>
         </div>
         
@@ -142,18 +176,17 @@
             const downloadBtn = document.getElementById('downloadBtn');
             const downloadToastEl = document.getElementById('downloadToast');
             
-            // Inisialisasi Toast Bootstrap
-            const downloadToast = new bootstrap.Toast(downloadToastEl, {
-                delay: 5000 // Toast akan hilang setelah 5 detik
-            });
+            // Periksa apakah elemen toast dan tombol download ada
+            if (downloadToastEl && downloadBtn) {
+                // Inisialisasi Toast Bootstrap
+                const downloadToast = new bootstrap.Toast(downloadToastEl, {
+                    delay: 5000 // Toast akan hilang setelah 5 detik
+                });
 
-            if (downloadBtn) {
                 downloadBtn.addEventListener('click', function(event) {
                     // Tampilkan notifikasi Toast saat tombol diklik
                     downloadToast.show();
-                    
-                    // Karena ini adalah tautan langsung untuk download (tanpa AJAX), kita biarkan
-                    // aksi default (pengunduhan) tetap berjalan.
+                    // Tidak perlu event.preventDefault() karena ini adalah link download
                 });
             }
         });

@@ -530,7 +530,7 @@
                             </div>
                             <div class="patient-info-row">
                                 <span class="patient-info-label">Layanan:</span>
-                                <span class="patient-info-value">{{ $pasien->layanan->pelayanan ?? '-' }}</span>
+                                <span class="patient-info-value">{{ $pasien->layanan_id ?? '-' }}</span>
                             </div>
                             <div class="patient-info-row">
                                 <span class="patient-info-label">Dokter:</span>
@@ -789,7 +789,7 @@
         document.getElementById('detail-dokter-mobile').textContent = d.dokter_nama || '-';
         document.getElementById('detail-tgl-kunjungan-mobile').textContent = d.tgl_kunjungan;
         document.getElementById('detail-waktu-mobile').textContent = d.waktu_kunjungan;
-        document.getElementById('detail-layanan-mobile').textContent = d.layanan_id;
+        document.getElementById('detail-layanan-mobile').textContent = d.layanan;
         document.getElementById('detail-kategori-mobile').textContent = d.kategori_pendaftaran;
         document.getElementById('detail-alamat-mobile').textContent = d.alamat;
         document.getElementById('detail-keluhan-mobile').textContent = d.keluhan;

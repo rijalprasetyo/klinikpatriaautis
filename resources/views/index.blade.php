@@ -645,7 +645,7 @@
     <nav class="navbar navbar-expand-lg fixed-top">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="/">
-                <img src="{{ asset('assets/logoklinik.png') }}" alt="Logo" width="90" height="42" class="me-2"> 
+                <img src="{{ asset('assets/logoklinik.png') }}" alt="Logo" width="300" height="42" class="me-2"> 
             </a>
 
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -735,7 +735,7 @@
                             
                         </div>
                         <p class="text-muted text-center mt-4 mb-0 pt-3 border-top">
-                            <i class="fas fa-calendar-check me-2"></i>Buka Setiap Hari (Hari Jumat Libur)
+                            <i class="fas fa-calendar-check me-2"></i>Buka Setiap Hari (Hari Jumat Libur) - Jam operasional 08.00-19.00 (tutup istirahat jam 12.00-15.00)
                         </p>
                         @else
                         <div class="text-center py-5">
@@ -806,11 +806,17 @@
             <div class="row g-4 justify-content-center">
                 <div class="col-lg-4 col-md-6">
                     <div class="category-card reveal" style="transition-delay: 0.1s;">
+                        <div class="text-center mb-3">
+                            <span class="badge rounded-pill px-3 py-2 fw-bold" style="background-color: var(--primary); color: var(--white); font-size: 0.9em;">
+                                PRIORITAS UTAMA
+                            </span>
+                        </div>
+                        
                         <div class="category-icon">
-                            <img src="https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=400" alt="Prioritas">
+                            <img src="https://res.cloudinary.com/djhikwue3/image/upload/v1763283011/IMG-20251116-WA0016_u7rn8f.jpg" alt="Prioritas">
                         </div>
                         <h3 class="h5 text-center fw-bold mb-2" style="color: var(--dark);">Disabilitas Prioritas<br>(Dengan Surat Keterangan Tidak Mampu)</h3>
-                        <p class="text-muted text-center small mb-4">Layanan rehabilitasi <strong>Gratis</strong> bagi keluarga prasejahtera.</p>
+                        <p class="text-muted text-center small mb-4">Layanan rehabilitasi bagi keluarga prasejahtera</p>
                         <a href="{{ route('user.login.submit') }}" class="btn btn-register">
                             Daftar Sekarang <i class="fas fa-arrow-right ms-2"></i>
                         </a>
@@ -818,11 +824,17 @@
                 </div>
                 <div class="col-lg-4 col-md-6">
                     <div class="category-card reveal" style="transition-delay: 0.2s;">
+                        <div class="text-center mb-3">
+                            <span class="badge rounded-pill px-3 py-2 fw-bold" style="background-color: var(--accent); color: var(--white); font-size: 0.9em;">
+                                PRIORITAS KEDUA
+                            </span>
+                        </div>
+
                         <div class="category-icon">
-                            <img src="https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=400" alt="Disabilitas">
+                            <img src="https://res.cloudinary.com/djhikwue3/image/upload/v1763283010/IMG-20251116-WA0018_idxrer.jpg" alt="Disabilitas">
                         </div>
                         <h3 class="h5 text-center fw-bold mb-2" style="color: var(--dark);">Disabilitas<br>(Tanpa Surat Keterangan Tidak Mampu)</h3>
-                        <p class="text-muted text-center small mb-4">Layanan dengan biaya terjangkau untuk kategori non-prasejahtera.</p>
+                        <p class="text-muted text-center small mb-4">Layanan dengan biaya terjangkau untuk kategori non-prasejahtera</p>
                         <a href="{{ route('user.login.submit') }}" class="btn btn-register">
                             Daftar Sekarang <i class="fas fa-arrow-right ms-2"></i>
                         </a>
@@ -830,11 +842,17 @@
                 </div>
                 <div class="col-lg-4 col-md-6">
                     <div class="category-card reveal" style="transition-delay: 0.3s;">
+                        <div class="text-center mb-3">
+                            <span class="badge rounded-pill px-3 py-2 fw-bold" style="background-color: var(--secondary); color: var(--white); font-size: 0.9em;">
+                                NON PRIORITAS
+                            </span>
+                        </div>
+
                         <div class="category-icon">
-                            <img src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=400" alt="Umum">
+                            <img src="https://res.cloudinary.com/djhikwue3/image/upload/v1763283011/IMG-20251116-WA0020_v82mly.jpg" alt="Umum">
                         </div>
                         <h3 class="h5 text-center fw-bold mb-2" style="color: var(--dark);">Masyarakat<br>Umum</h3>
-                        <p class="text-muted text-center small mb-4">Layanan fisioterapi umum sesuai ketersediaan kuota.</p>
+                        <p class="text-muted text-center small mb-4">Layanan fisioterapi umum sesuai ketersediaan kuota</p>
                         <a href="{{ route('user.login.submit') }}" class="btn btn-register">
                             Daftar Sekarang <i class="fas fa-arrow-right ms-2"></i>
                         </a>
@@ -864,7 +882,7 @@
                     <h5 class="footer-title">Kontak</h5>
                     <ul class="list-unstyled">
                         <li class="mb-2"><i class="fas fa-map-marker-alt me-2"></i>Jl. Manggar No.08, Sengkaling, Mulyoagung, Kec. Dau, Kabupaten Malang, Jawa Timur</li>
-                        <li class="mb-2"><i class="fas fa-phone me-2"></i>0896-8187-0970</li>
+                        <li class="mb-2"><i class="fas fa-phone me-2"></i>089681870970</li>
                         <li class="mb-2"><i class="fas fa-envelope me-2"></i>macdatabase25@gmail.com</li>
                     </ul>
                 </div>

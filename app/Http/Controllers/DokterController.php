@@ -71,8 +71,6 @@ class DokterController extends Controller
     public function dataPasienScheduled(Request $request)
     {
         $dokter = Auth::guard('dokter')->user();
-        // $dokterId = $dokter->id; // DIHAPUS karena permintaan menampilkan semua data
-        
         $today = Carbon::today()->toDateString();
         
         // Ambil nilai filter dari request
@@ -81,13 +79,16 @@ class DokterController extends Controller
         $filterStatusPemeriksaan = $request->query('status_pemeriksaan'); 
         $filterNamaPasien = $request->query('nama_pasien'); 
 
+        // Daftar status berkas yang HANYA diizinkan untuk ditampilkan
+        $allowedStatusBerkas = ['Belum Diverifikasi', 'Sudah Diverifikasi'];
+
         // =======================================================
         // 1. Data Pasien HARI INI
         // =======================================================
-        // KOREKSI: Hapus 'layanan'. Hapus filter dokter_id.
         $queryHariIni = DataPasien::with(['waktu'])
-            // Hapus: ->where('dokter_id', $dokterId)
             ->whereDate('tgl_kunjungan', $today)
+            // HANYA tampilkan data dengan status berkas yang diizinkan
+            ->whereIn('status_berkas', $allowedStatusBerkas) 
             ->orderBy('waktu_id', 'asc');
 
         // Filter Status Pemeriksaan (Hari Ini)
@@ -108,10 +109,10 @@ class DokterController extends Controller
         // =======================================================
         // 2. Data Pasien MENDATANG
         // =======================================================
-        // KOREKSI: Hapus 'layanan'. Hapus filter dokter_id.
         $queryMendatang = DataPasien::with(['waktu'])
-            // Hapus: ->where('dokter_id', $dokterId)
             ->where('tgl_kunjungan', '>', $today) // Ambil semua data setelah hari ini
+            // HANYA tampilkan data dengan status berkas yang diizinkan
+            ->whereIn('status_berkas', $allowedStatusBerkas)
             ->orderBy('tgl_kunjungan', 'asc')
             ->orderBy('waktu_id', 'asc');
             
@@ -121,7 +122,7 @@ class DokterController extends Controller
         }
         
         // --- FILTER STATUS BERKAS ---
-        if ($filterStatusBerkas && in_array($filterStatusBerkas, ['Belum Diverifikasi', 'Sudah Diverifikasi'])) {
+        if ($filterStatusBerkas && in_array($filterStatusBerkas, $allowedStatusBerkas)) {
             $queryMendatang->where('status_berkas', $filterStatusBerkas);
         }
         
@@ -138,9 +139,10 @@ class DokterController extends Controller
         $pasienMendatang = $queryMendatang->get();
         
         // Ambil daftar unik tanggal mendatang untuk dropdown filter
+        // Tambahkan filter status berkas ke sini juga
         $availableDates = DataPasien::select('tgl_kunjungan')
-            // Hapus: ->where('dokter_id', $dokterId)
             ->where('tgl_kunjungan', '>', $today)
+            ->whereIn('status_berkas', $allowedStatusBerkas) // Memastikan tanggal yang tersedia juga disaring
             ->distinct()
             ->orderBy('tgl_kunjungan', 'asc')
             ->pluck('tgl_kunjungan');
@@ -179,8 +181,13 @@ class DokterController extends Controller
         $filterStatusPemeriksaan = $request->query('status_pemeriksaan');
         $filterNamaPasien = $request->query('nama_pasien');
         
+        // Status Berkas yang Diizinkan untuk Tampil (Wajib)
+        $allowedStatusBerkas = ['Belum Diverifikasi', 'Sudah Diverifikasi'];
+
         // KOREKSI: Hapus 'layanan' dari with(). Relasi waktu tetap.
         $query = DataPasien::with(['waktu'])
+            // WAJIB: Hanya tampilkan pasien dengan status berkas yang diverifikasi
+            ->whereIn('status_berkas', $allowedStatusBerkas) 
             ->orderBy('tgl_kunjungan', 'desc')
             ->orderBy('waktu_id', 'asc');
         
@@ -193,14 +200,11 @@ class DokterController extends Controller
             $query->whereDate('tgl_kunjungan', '<=', $filterEndDate);
         }
         
-        // Filter Status Pemeriksaan (KOREKSI LOGIKA)
-        // Jika $filterStatusPemeriksaan tidak kosong, terapkan filter tersebut.
+        // Filter Status Pemeriksaan
         if ($filterStatusPemeriksaan && in_array($filterStatusPemeriksaan, ['Belum Diperiksa', 'Sedang Diperiksa', 'Selesai Diperiksa'])) {
             $query->where('status_pemeriksaan', $filterStatusPemeriksaan);
         } else {
-            // Jika filter status kosong, TAMPILKAN SEMUA STATUS.
-            // Kita tidak menambahkan klausa where status_pemeriksaan di sini.
-            // Cukup pastikan variabel filter yang dikirim ke view adalah null/kosong.
+            // Jika filter status kosong, TAMPILKAN SEMUA STATUS PEMERIKSAAN.
             $filterStatusPemeriksaan = null; // Reset filter yang dikirim ke view jika tujuannya SEMUA
         }
         

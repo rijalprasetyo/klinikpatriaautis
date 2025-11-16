@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Pengguna - Klinik Patria</title>
-    <link rel="icon" type="image/x-icon" href="{{ asset('assets/logoklinik.png') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('assets/logoklinik1.png') }}">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
@@ -178,7 +178,7 @@
             <div class="sidebar-header">
                 <div class="sidebar-logo">
                     {{-- Ganti dengan path logo Anda --}}
-                    <img src="{{ asset('assets/logoklinik.png') }}" alt="Logo Klinik Patria"> 
+                    <img src="{{ asset('assets/logoklinik1.png') }}" alt="Logo Klinik Patria"> 
                 </div>
                 <h4>Klinik Patria</h4>
             </div>

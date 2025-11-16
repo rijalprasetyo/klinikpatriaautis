@@ -67,6 +67,9 @@ Route::middleware('auth:admin')->group(function () {
     Route::post('/admin/data-backup', [DataBackupKontroler::class, 'backup'])->name('admin.data-backup.store');
     Route::post('/admin/data-backup/reset', [DataBackupKontroler::class, 'resetSystem'])->name('admin.data-backup.reset');
     Route::put('/admin/dokter/{id}/reset-password', [AdminController::class, 'resetDokterPassword'])->name('admin.dokter.resetPassword');
+    Route::put('/admin/berkas-umum/{id}/update', [AdminController::class, 'updetMasyarakatUmum'])->name('admin.berkas.update-masyarakat-umum');
+    Route::get('/admin/verifikasi-umum', [AdminController::class, 'riwayatPasienMasyarakatUmum'])->name('admin.verifikasi-umum');
+    Route::put('/admin/berkas-umum/massal-update', [AdminController::class, 'updetMassal'])->name('admin.berkas.update-massal');
 });
 
 // DOKTER
@@ -87,6 +90,8 @@ Route::middleware('auth:dokter')->group(function () {
     Route::get('/dokter/biodata', [DokterController::class, 'biodata'])->name('dokter.biodata');
     Route::post('/dokter/biodata/update', [DokterController::class, 'updateBiodata'])->name('dokter.biodata.update');
     Route::post('/dokter/password/update', [DokterController::class, 'updatePassword'])->name('dokter.password.update');
+    Route::post('/dokter/{id}/media/upload', [DokterController::class, 'uploadMedia'])->name('pasien.media.upload');
+    Route::post('/dokter/{id}/media/delete', [DokterController::class, 'deleteMedia'])->name('pasien.media.delete');
 });
 
 // USER
@@ -108,5 +113,6 @@ Route::middleware('auth:web')->group(function () {
     Route::get('/pasien/{id}/detail', [UserController::class, 'getDetailPasien'])->name('pasien.detail');
     Route::get('/pasien/{id}/catatan', [UserController::class, 'getCatatan'])->name('pasien.get-catatan');
     Route::post('/pasien/{id}/feedback', [UserController::class, 'submitFeedback'])->name('pasien.submit-feedback');
+    
 });
 

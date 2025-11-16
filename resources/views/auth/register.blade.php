@@ -30,13 +30,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: auto; /* aktifkan scroll pada body */
-            padding: 20px; /* beri sedikit ruang agar kontainer tidak menempel */
+            overflow: auto; 
+            padding: 20px; 
         }
 
         .register-container {
             display: flex;
-            min-height: 80vh; /* ubah dari height ke min-height */
+            min-height: 80vh; 
             width: 80%;
             max-width: 900px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
@@ -75,9 +75,9 @@
             padding: 3rem;
             display: flex;
             flex-direction: column;
-            justify-content: flex-start; /* ubah agar konten mulai dari atas */
-            overflow-y: auto; /* scroll vertikal aktif */
-            max-height: 80vh; /* batasi tinggi agar tidak melebihi viewport */
+            justify-content: flex-start; 
+            overflow-y: auto; 
+            max-height: 80vh; 
         }
 
         .register-card {
@@ -202,6 +202,26 @@
         
         .invalid-feedback {
             font-size: 0.875rem;
+            display: none;
+        }
+        
+        .form-control.is-invalid-client {
+            border-color: #dc3545 !important;
+        }
+        .is-invalid-client + .invalid-feedback-client {
+            display: block;
+        }
+        .invalid-feedback-client {
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+
+        .form-text {
+            font-size: 0.875em;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
         }
 
         @media (max-width: 768px) {
@@ -245,7 +265,7 @@
                     Buat Akun Baru
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ route('register') }}">
+                                        <form id="registrationForm" method="POST" action="{{ route('register') }}">
                         @csrf
 
                         <div class="mb-3">
@@ -309,6 +329,10 @@
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
+                            <div class="invalid-feedback-client" id="password-feedback-client"></div>
+                            <div id="passwordHelpBlock" class="form-text">
+                                Kata sandi harus 8 karakter atau lebih dan mengandung **kombinasi angka dan huruf**.
+                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -317,6 +341,10 @@
                                 <input id="password-confirm" type="password" 
                                        class="form-control" name="password_confirmation" required autocomplete="new-password">
                                 <i class="fas fa-eye toggle-password"></i>
+                            </div>
+                            <div class="invalid-feedback-client" id="password-confirm-feedback-client"></div>
+                            <div id="passwordConfirmHelpBlock" class="form-text">
+                                Pastikan kata sandi yang Anda masukkan sama.
                             </div>
                         </div>
 
@@ -344,22 +372,107 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const passwordInputs = document.querySelectorAll('.password-input-group input');
-            const togglePasswords = document.querySelectorAll('.toggle-password');
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const passwordInput = document.getElementById('password');
+        const passwordConfirmInput = document.getElementById('password-confirm');
+        const registrationForm = document.getElementById('registrationForm');
+        const passwordFeedback = document.getElementById('password-feedback-client');
+        const passwordConfirmFeedback = document.getElementById('password-confirm-feedback-client');
 
-            togglePasswords.forEach((toggle, index) => {
-                toggle.addEventListener('click', function () {
-                    const input = passwordInputs[index];
-                    const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
-                    input.setAttribute('type', type);
-                    this.classList.toggle('fa-eye-slash');
-                });
+        // Fungsi untuk menampilkan/menyembunyikan password (TETAP SAMA)
+        const togglePasswords = document.querySelectorAll('.toggle-password');
+        togglePasswords.forEach((toggle, index) => {
+            toggle.addEventListener('click', function () {
+                const input = index === 0 ? passwordInput : passwordConfirmInput;
+                const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+                input.setAttribute('type', type);
+                this.classList.toggle('fa-eye-slash');
             });
         });
-    </script>
+
+        // --- Fungsi Validasi Kata Sandi ---
+        function validatePassword() {
+            const password = passwordInput.value;
+            let isValid = true;
+            let message = '';
+            
+            // Regex: Minimal 8 karakter, mengandung setidaknya 1 angka dan 1 huruf
+            const regex = /^(?=.*[0-9])(?=.*[a-zA-Z]).{8,}$/;
+            
+            if (password.length < 8) {
+                isValid = false;
+                message = 'Kata sandi minimal harus 8 karakter.';
+            } else if (!regex.test(password)) {
+                isValid = false;
+                message = 'Kata sandi harus mengandung kombinasi huruf dan angka.';
+            }
+
+            // LOGIKA MENAMPILKAN/MENGHILANGKAN ALERT
+            if (isValid) {
+                passwordInput.classList.remove('is-invalid-client');
+                passwordFeedback.textContent = '';
+                passwordFeedback.style.display = 'none'; // Sembunyikan alert
+            } else {
+                passwordInput.classList.add('is-invalid-client');
+                passwordFeedback.textContent = message;
+                passwordFeedback.style.display = 'block'; // Tampilkan alert
+            }
+            return isValid;
+        }
+            
+        // Fungsi Validasi Konfirmasi Kata Sandi
+        function validatePasswordConfirm() {
+            const password = passwordInput.value;
+            const passwordConfirm = passwordConfirmInput.value;
+            let isValid = true;
+            let message = '';
+
+            // Cek kesesuaian hanya jika password utama sudah valid (opsional)
+            if (passwordConfirm.length > 0 && passwordConfirm !== password) {
+                isValid = false;
+                message = 'Konfirmasi kata sandi tidak cocok.';
+            } else if (passwordConfirm.length === 0) {
+                // Biarkan validasi password utama yang menangani jika password kosong, 
+                // ini hanya untuk memastikan konfirmasi diisi jika password utama terisi
+                isValid = true;
+                message = ''; 
+            }
+
+            if (isValid) {
+                passwordConfirmInput.classList.remove('is-invalid-client');
+                passwordConfirmFeedback.textContent = '';
+                passwordConfirmFeedback.style.display = 'none'; // Sembunyikan alert
+            } else {
+                passwordConfirmInput.classList.add('is-invalid-client');
+                passwordConfirmFeedback.textContent = message;
+                passwordConfirmFeedback.style.display = 'block'; // Tampilkan alert
+            }
+            return isValid;
+        }
+
+        // Event listener saat user mengetik
+        passwordInput.addEventListener('keyup', validatePassword);
+        passwordConfirmInput.addEventListener('keyup', validatePasswordConfirm);
+
+        // Event listener untuk Konfirmasi Kata Sandi juga harus dipicu jika Password berubah
+        passwordInput.addEventListener('keyup', validatePasswordConfirm);
+
+        // Event listener saat form disubmit
+        registrationForm.addEventListener('submit', function (e) {
+            // Jalankan semua validasi saat submit
+            const isPasswordValid = validatePassword();
+            const isPasswordConfirmValid = validatePasswordConfirm();
+
+            // Jika salah satu validasi gagal, cegah pengiriman formulir
+            if (!isPasswordValid || !isPasswordConfirmValid) {
+                e.preventDefault();
+            }
+        });
+    });
+</script>
+
 </body>
 
 </html>

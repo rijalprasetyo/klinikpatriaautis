@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Klinik Fisioterapi Klinik Patria</title>
-    <link rel="icon" type="image/x-icon" href="{{ asset('assets/logoklinik.png') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('assets/logoklinik1.png') }}">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -287,7 +287,7 @@
     <nav class="navbar navbar-expand-lg navbar-light fixed-top bg-white shadow-sm">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="/">
-                <img src="{{ asset('assets/logoklinik.png') }}" alt="Logo Klinik Patria" width="85" height="40" class="me-2">
+                <img src="{{ asset('assets/logoklinik1.png') }}" alt="Logo Klinik Patria" width="85" height="40" class="me-2">
                 
             </a>
 

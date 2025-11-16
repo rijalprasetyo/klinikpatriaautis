@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/x-icon" href="{{ asset('assets/logoklinik.png') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('assets/logoklinik1.png') }}">
     <title>@yield('title', 'Dashboard Dokter - Klinik Patria')</title>
 
     {{-- Bootstrap & Icons --}}
@@ -172,7 +172,7 @@
         <div>
             <div class="sidebar-header">
                 <div class="sidebar-logo">
-                    <img src="{{ asset('assets/logoklinik.png') }}" alt="Logo Klinik Patria">
+                    <img src="{{ asset('assets/logoklinik1.png') }}" alt="Logo Klinik Patria">
                 </div>
                 <h4>Klinik Patria</h4>
             </div>
