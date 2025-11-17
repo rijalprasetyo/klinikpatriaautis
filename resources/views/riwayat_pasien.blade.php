@@ -13,6 +13,13 @@
         --warning-yellow: #ffc107;
     }
 
+    .media-player {
+         width: 100%;
+         max-height: 300px;
+         object-fit: contain; /* Penting untuk gambar agar tidak terdistorsi */
+         display: none;
+    }
+
     .container-fluid h2 {
         color: var(--secondary-blue);
         border-bottom: 2px solid var(--border-light);
@@ -257,11 +264,6 @@
             line-height: 1.3;
         }
 
-        .modal-header .btn-close {
-            padding: 0.5rem;
-            margin: 0;
-        }
-
         /* Modal Body - Scrollable */
         .modal-body {
             padding: 10px 12px;
@@ -326,78 +328,20 @@
             word-wrap: break-word;
         }
 
-        /* Tab Catatan - Compact */
-        #catatan-content .col-md-6 {
-            width: 100%;
-            margin-bottom: 12px !important;
-        }
-
-        #catatan-content .form-label {
-            font-size: 0.85rem;
-            margin-bottom: 6px;
-        }
-
-        #catatan-content p {
-            font-size: 0.8rem;
-            padding: 10px;
-            min-height: 100px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
         /* Tab Video - Compact */
         #video-tab-pane .col-md-6 {
             width: 100%;
             margin-bottom: 12px !important;
         }
 
-        #video-tab-pane .card {
-            margin-bottom: 0;
+        #video-tab-pane video,
+        #video-tab-pane img {
+            max-height: 200px !important;
         }
 
         #video-tab-pane .card-header {
             padding: 8px;
             font-size: 0.85rem;
-        }
-
-        #video-tab-pane .card-body {
-            padding: 10px;
-        }
-
-        .video-container {
-            min-height: 180px;
-        }
-
-        #video-tab-pane video {
-            max-height: 200px !important;
-        }
-
-        #video-tab-pane .alert {
-            font-size: 0.8rem;
-            padding: 10px;
-            margin: 0;
-        }
-
-        /* Tab Feedback - Compact */
-        #feedback-tab-pane p.text-muted {
-            font-size: 0.8rem;
-            margin-bottom: 10px;
-        }
-
-        #feedback-tab-pane .form-label {
-            font-size: 0.85rem;
-            margin-bottom: 6px;
-        }
-
-        #feedback-tab-pane textarea {
-            font-size: 0.85rem;
-            min-height: 120px;
-        }
-
-        #feedback-tab-pane button[type="submit"] {
-            width: 100%;
-            font-size: 0.9rem;
-            padding: 10px;
         }
 
         /* Modal Footer - Compact */
@@ -505,6 +449,8 @@
                                         data-id="{{ $pasien->id }}" 
                                         data-video-before="{{ $pasien->video_before ? asset('public/storage/' . $pasien->video_before) : '' }}" 
                                         data-video-after="{{ $pasien->video_after ? asset('public/storage/' . $pasien->video_after) : '' }}" 
+                                        data-photo-before="{{ $pasien->video_before ?? null ? asset('public/storage/' . $pasien->video_before) : '' }}"
+                                        data-photo-after="{{ $pasien->video_after ?? null ? asset('public/storage/' . $pasien->video_after) : '' }}"
                                         data-current-feedback="{{ $pasien->feedback }}"
                                         title="Riwayat Pasien Lengkap">
                                     <i class="fa-solid fa-folder-open me-1"></i> Riwayat Pasien
@@ -545,6 +491,8 @@
                                     data-id="{{ $pasien->id }}" 
                                     data-video-before="{{ $pasien->video_before ? asset('public/storage/' . $pasien->video_before) : '' }}" 
                                     data-video-after="{{ $pasien->video_after ? asset('public/storage/' . $pasien->video_after) : '' }}" 
+                                    data-photo-before="{{ $pasien->video_before ?? null ? asset('public/storage/' . $pasien->video_before) : '' }}"
+                                    data-photo-after="{{ $pasien->video_after ?? null ? asset('public/storage/' . $pasien->video_after) : '' }}"
                                     data-current-feedback="{{ $pasien->feedback }}"
                                     title="Riwayat Pasien Lengkap">
                                 <i class="fa-solid fa-folder-open me-1"></i> Detail
@@ -583,7 +531,7 @@
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="video-tab" data-bs-toggle="tab" data-bs-target="#video-tab-pane" type="button" role="tab">
-                            <i class="fa-solid fa-video me-1"></i> Video
+                            <i class="fa-solid fa-photo-video me-1"></i> Media
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
@@ -690,18 +638,24 @@
                         </div>
                     </div>
                     
-                    {{-- TAB 3: Video --}}
+                    {{-- TAB 3: File (Video/Foto) --}}
                     <div class="tab-pane fade" id="video-tab-pane" role="tabpanel" aria-labelledby="video-tab" tabindex="0">
-                        <p class="text-muted mb-4">Video sebelum dan sesudah pemeriksaan.</p>
+                        <p class="text-muted mb-4">Video dan/atau Foto sebelum dan sesudah pemeriksaan.</p>
                         <div class="row">
                             <div class="col-md-6 mb-4">
                                 <div class="card shadow-sm h-100">
-                                    <div class="card-header bg-light fw-bold text-center">Video Sebelum</div>
+                                    <div class="card-header bg-light fw-bold text-center">Media Sebelum Pemeriksaan</div>
                                     <div class="card-body">
                                         <div class="video-container" id="player-before-tab">
-                                            <video id="video-before-player-tab" controls style="width: 100%; max-height: 300px; display: none;" class="rounded"></video>
-                                            <div id="video-before-not-found-tab" class="alert alert-info text-center" style="display: block;">
-                                                <i class="fa-solid fa-triangle-exclamation me-1"></i> Belum ada video
+                                            
+                                            {{-- TAG IMG UNTUK FOTO --}}
+                                            <img id="photo-before-player-tab" alt="Foto Sebelum" class="media-player rounded">
+
+                                            {{-- TAG VIDEO --}}
+                                            <video id="video-before-player-tab" controls class="media-player rounded"></video>
+                                            
+                                            <div id="media-before-not-found-tab" class="alert alert-info text-center" style="display: block;">
+                                                <i class="fa-solid fa-triangle-exclamation me-1"></i> Belum ada media.
                                             </div>
                                         </div>
                                     </div>
@@ -709,12 +663,18 @@
                             </div>
                             <div class="col-md-6 mb-4">
                                 <div class="card shadow-sm h-100">
-                                    <div class="card-header bg-light fw-bold text-center">Video Sesudah</div>
+                                    <div class="card-header bg-light fw-bold text-center">Media Sesudah Pemeriksaan</div>
                                     <div class="card-body">
                                         <div class="video-container" id="player-after-tab">
-                                            <video id="video-after-player-tab" controls style="width: 100%; max-height: 300px; display: none;" class="rounded"></video>
-                                            <div id="video-after-not-found-tab" class="alert alert-info text-center" style="display: block;">
-                                                <i class="fa-solid fa-triangle-exclamation me-1"></i> Belum ada video
+                                            
+                                            {{-- TAG IMG UNTUK FOTO --}}
+                                            <img id="photo-after-player-tab" alt="Foto Sesudah" class="media-player rounded">
+
+                                            {{-- TAG VIDEO --}}
+                                            <video id="video-after-player-tab" controls class="media-player rounded"></video>
+                                            
+                                            <div id="media-after-not-found-tab" class="alert alert-info text-center" style="display: block;">
+                                                <i class="fa-solid fa-triangle-exclamation me-1"></i> Belum ada media.
                                             </div>
                                         </div>
                                     </div>
@@ -761,6 +721,22 @@
         if (playerBefore) playerBefore.pause();
         if (playerAfter) playerAfter.pause();
     }
+
+    // Helper functions untuk identifikasi tipe file
+    function isImageFile(path) {
+        if (!path) return false;
+        const extension = path.split('.').pop().toLowerCase();
+        // Mendukung JPEG, PNG, GIF, WebP, dan format iPhone (HEIC, HEIF)
+        return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif'].includes(extension);
+    }
+
+    function isVideoFile(path) {
+        if (!path) return false;
+        const extension = path.split('.').pop().toLowerCase();
+        // Mendukung MP4 dan format video iPhone (MOV)
+        return ['mp4', 'mov', 'flv', 'avi', 'wmv'].includes(extension);
+    }
+
 
     // Fungsi untuk update tampilan detail (desktop/mobile)
     function updateDetailDisplay(data) {
@@ -812,6 +788,63 @@
         }
     }
 
+
+    // FUNGSI UTAMA UNTUK MENAMPILKAN MEDIA (VIDEO/FOTO)
+    function setupMediaPlayers(videoBeforePath, videoAfterPath, photoBeforePath, photoAfterPath) {
+        
+        // Slot Before
+        const videoBeforeEl = document.getElementById('video-before-player-tab');
+        const photoBeforeEl = document.getElementById('photo-before-player-tab');
+        const notFoundBeforeEl = document.getElementById('media-before-not-found-tab');
+        
+        // Slot After
+        const videoAfterEl = document.getElementById('video-after-player-tab');
+        const photoAfterEl = document.getElementById('photo-after-player-tab');
+        const notFoundAfterEl = document.getElementById('media-after-not-found-tab');
+
+        // Helper internal untuk menyetel visibility
+        const handleDisplay = (videoPath, photoPath, videoEl, photoEl, notFoundEl) => {
+            // Reset semua
+            videoEl.style.display = 'none';
+            videoEl.removeAttribute('src');
+            photoEl.style.display = 'none';
+            photoEl.removeAttribute('src');
+            notFoundEl.style.display = 'block';
+
+            const path = videoPath || photoPath; 
+
+            if (path) {
+                if (isImageFile(path)) {
+                    // Tampilkan Foto
+                    photoEl.src = path;
+                    photoEl.style.display = 'block';
+                } else if (isVideoFile(path)) {
+                    // Tampilkan Video
+                    videoEl.src = path;
+                    videoEl.load();
+                    videoEl.style.display = 'block';
+                }
+                
+                // Jika berhasil menampilkan, sembunyikan not found
+                if (isImageFile(path) || isVideoFile(path)) {
+                    notFoundEl.style.display = 'none';
+                }
+            }
+        };
+
+        // Panggil helper untuk kedua slot
+        handleDisplay(videoBeforePath, photoBeforePath, videoBeforeEl, photoBeforeEl, notFoundBeforeEl);
+        handleDisplay(videoAfterPath, photoAfterPath, videoAfterEl, photoAfterEl, notFoundAfterEl);
+    }
+    
+    function setupFeedbackForm(pasienId, currentFeedback) {
+        const formFeedback = document.getElementById('form-feedback-tab');
+        const submitFeedbackUrlTemplate = `{{ route('pasien.submit-feedback', ['id' => 'PASIEN_ID']) }}`;
+        
+        formFeedback.action = submitFeedbackUrlTemplate.replace('PASIEN_ID', pasienId);
+        document.getElementById('feedback_text_tab').value = currentFeedback || '';
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         const riwayatModal = new bootstrap.Modal(document.getElementById('riwayatPasienModal'));
         
@@ -821,7 +854,6 @@
         // Templat URL API
         const detailUrlTemplate = `{{ route('pasien.detail', ['id' => 'PASIEN_ID']) }}`;
         const getCatatanUrlTemplate = `{{ route('pasien.get-catatan', ['id' => 'PASIEN_ID']) }}`;
-        const submitFeedbackUrlTemplate = `{{ route('pasien.submit-feedback', ['id' => 'PASIEN_ID']) }}`;
         
         let currentPasienId = null;
         
@@ -835,30 +867,31 @@
         document.querySelectorAll('.btn-riwayat').forEach(button => {
             button.addEventListener('click', function() {
                 currentPasienId = this.dataset.id;
-                const videoBeforePath = this.dataset.videoBefore;
-                const videoAfterPath = this.dataset.videoAfter;
-                const currentFeedback = this.dataset.currentFeedback;
+                
+                // Ambil semua data attribute media
+                const mediaData = {
+                    videoBeforePath: button.dataset.videoBefore,
+                    videoAfterPath: button.dataset.videoAfter,
+                    photoBeforePath: button.dataset.photoBefore,
+                    photoAfterPath: button.dataset.photoAfter,
+                    currentFeedback: button.dataset.currentFeedback
+                };
                 
                 // 1. Tampilkan Modal
                 riwayatModal.show();
                 
                 // 2. Reset dan Tampilkan Tab Detail sebagai default
                 const detailTab = document.getElementById('detail-tab');
-                const tabInstance = bootstrap.Tab.getInstance(detailTab);
-                if (tabInstance) {
-                    tabInstance.show();
-                } else {
-                    new bootstrap.Tab(detailTab).show();
-                }
+                new bootstrap.Tab(detailTab).show();
 
                 // 3. Muat Data Detail
                 loadDetailPasien(currentPasienId);
                 
-                // 4. Atur Video
-                setupVideoPlayers(videoBeforePath, videoAfterPath);
-                
+                // 4. Atur Media (Video/Foto)
+                setupMediaPlayers(mediaData.videoBeforePath, mediaData.videoAfterPath, mediaData.photoBeforePath, mediaData.photoAfterPath);
+
                 // 5. Atur Form Feedback
-                setupFeedbackForm(currentPasienId, currentFeedback);
+                setupFeedbackForm(currentPasienId, mediaData.currentFeedback);
             });
         });
 
@@ -879,52 +912,45 @@
             stopVideos();
         });
 
-        // =========================================================
+
         // FUNGSI UTAMA UNTUK MENGISI KONTEN TAB
-        // =========================================================
-
         function loadDetailPasien(pasienId) {
-        const loading = document.getElementById('loading-spinner-detail');
-        const detailTable = document.getElementById('detail-table');
-        const detailCards = document.getElementById('detail-cards-mobile');
-        
-        loading.style.display = 'block';
-        detailTable.style.display = 'none';
-        detailCards.style.display = 'none';
+            const loading = document.getElementById('loading-spinner-detail');
+            const detailTable = document.getElementById('detail-table');
+            const detailCards = document.getElementById('detail-cards-mobile');
+            
+            loading.style.display = 'block';
+            detailTable.style.display = 'none';
+            detailCards.style.display = 'none';
 
-        fetch(detailUrlTemplate.replace('PASIEN_ID', pasienId))
-            .then(response => {
-                if (!response.ok) {
-                    // Tangkap error 404/500/lainnya
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                // PASTIKAN data.data TERISI JIKA STATUS SUCCESS
-                if (data.status !== 'success' || !data.data) {
-                    throw new Error('Respons sukses, tapi data kosong.');
-                }
-                
-                document.getElementById('riwayat-antrian').textContent = `Antrian: ${data.data.nomor_antrian}`;
-                
-                // Update semua field
-                updateDetailDisplay(data); // Fungsi ini yang mengisi field
-                
-                // Toggle tampilan sesuai ukuran layar
-                toggleDetailView();
-                
-                loading.style.display = 'none';
-            })
-            .catch(error => {
-                console.error('Error fetching detail:', error);
-                alert('Gagal mengambil detail kunjungan. Pastikan Anda login sebagai pemilik data.');
-                loading.style.display = 'none';
-                // Tampilkan kembali tabel/cards kosong jika gagal
-                toggleDetailView(); 
-            });
-    }
-        
+            fetch(detailUrlTemplate.replace('PASIEN_ID', pasienId))
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status !== 'success' || !data.data) {
+                        throw new Error('Respons sukses, tapi data kosong.');
+                    }
+                    
+                    document.getElementById('riwayat-antrian').textContent = `Antrian: ${data.data.nomor_antrian}`;
+                    
+                    updateDetailDisplay(data); 
+                    
+                    toggleDetailView();
+                    
+                    loading.style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('Error fetching detail:', error);
+                    alert('Gagal mengambil detail kunjungan.');
+                    loading.style.display = 'none';
+                    toggleDetailView(); 
+                });
+        }
+            
         function loadCatatanDokter(pasienId) {
             const loading = document.getElementById('loading-spinner-catatan');
             const content = document.getElementById('catatan-content');
@@ -932,7 +958,6 @@
             loading.style.display = 'block';
             content.style.display = 'none';
             
-            // Teks sementara saat memuat
             document.getElementById('view_catatan_pemeriksaan').textContent = 'Memuat...';
             document.getElementById('view_catatan_obat').textContent = 'Memuat...';
 
@@ -957,42 +982,6 @@
                 });
         }
         
-        function setupVideoPlayers(videoBeforePath, videoAfterPath) {
-            const playerBefore = document.getElementById('video-before-player-tab');
-            const notFoundBefore = document.getElementById('video-before-not-found-tab');
-            const playerAfter = document.getElementById('video-after-player-tab');
-            const notFoundAfter = document.getElementById('video-after-not-found-tab');
-
-            // Video Before
-            if (videoBeforePath) {
-                playerBefore.src = videoBeforePath;
-                playerBefore.load();
-                playerBefore.style.display = 'block';
-                notFoundBefore.style.display = 'none';
-            } else {
-                playerBefore.removeAttribute('src');
-                playerBefore.style.display = 'none';
-                notFoundBefore.style.display = 'block';
-            }
-
-            // Video After
-            if (videoAfterPath) {
-                playerAfter.src = videoAfterPath;
-                playerAfter.load();
-                playerAfter.style.display = 'block';
-                notFoundAfter.style.display = 'none';
-            } else {
-                playerAfter.removeAttribute('src');
-                playerAfter.style.display = 'none';
-                notFoundAfter.style.display = 'block';
-            }
-        }
-        
-        function setupFeedbackForm(pasienId, currentFeedback) {
-            formFeedback.action = submitFeedbackUrlTemplate.replace('PASIEN_ID', pasienId);
-            document.getElementById('feedback_text_tab').value = currentFeedback || '';
-        }
-
         // Event handler submit form Feedback
         formFeedback.addEventListener('submit', function(e) {
             e.preventDefault();

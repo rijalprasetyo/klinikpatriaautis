@@ -177,7 +177,7 @@
         <div>
             <div class="sidebar-header">
                 <div class="sidebar-logo">
-                    <img src="{{ asset('assets/logoklinik.png') }}" alt="Logo Klinik Patria">
+                    <img src="{{ asset('assets/logoklinik1.png') }}" alt="Logo Klinik Patria">
                 </div>
                 <h4>Admin Panel</h4>
             </div>

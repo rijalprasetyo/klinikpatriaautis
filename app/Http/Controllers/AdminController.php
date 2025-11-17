@@ -526,45 +526,81 @@ class AdminController extends Controller
 
     public function riwayatPasien(Request $request)
     {
-        // PERBAIKAN: Hapus relasi 'layanan' dari with().
-        $query = DataPasien::with(['dokter']);
-
-        // 1. Filter Kategori Pendaftaran (BARU DITAMBAHKAN)
-        if ($request->filled('kategori_pendaftaran')) {
-            $query->where('kategori_pendaftaran', $request->kategori_pendaftaran);
-        }
+        // Tanggal Hari Ini (untuk mengecek apakah kunjungan sudah lewat)
+        $today = Carbon::today()->toDateString();
         
-        // Filter Tanggal Mulai
-        if ($request->filled('start_date')) {
-            $query->whereDate('tgl_kunjungan', '>=', $request->start_date);
-        }
+        // Pastikan kita memilih SEMUA KOLOM dari model DataPasien untuk Union
+        // Gunakan select('*') atau daftar kolom eksplisit (e.g., ['data_pasien.*'])
+        $selectColumns = ['data_pasien.*'];
 
-        // Filter Tanggal Akhir
-        if ($request->filled('end_date')) {
-            $query->whereDate('tgl_kunjungan', '<=', $request->end_date);
-        }
-
-        // Filter Status Pemeriksaan
-        if ($request->filled('status_pemeriksaan')) {
-            $query->where('status_pemeriksaan', $request->status_pemeriksaan);
-        }
-
-        // Filter Nama Pasien
-        if ($request->filled('nama_pasien')) {
-            $query->where('nama_pasien', 'like', '%' . $request->nama_pasien . '%');
-        }
-
-        $dataPasien = $query->orderBy('tgl_kunjungan', 'desc')->get();
+        // --- QUERY 1: PASIEN YANG SUDAH DIVERIFIKASI (BASE RIWAYAT) ---
+        // Tambahkan filter request ke query ini (jika ada)
+        $queryVerified = DataPasien::select($selectColumns)
+                            ->with(['dokter']) // Relasi dokter HANYA bisa di-load di kueri utama Eloquent
+                            ->where('status_berkas', 'Sudah Diverifikasi');
         
-        // 2. Ambil daftar kategori unik yang ada di database (BARU DITAMBAHKAN)
-        // Asumsikan model DataPasien sudah di-import.
+        // --- QUERY 2: PASIEN YANG BELUM DIVERIFIKASI TAPI SUDAH EXPIRED (JADWAL LEWAT) ---
+        // Gunakan clone dari query 1 untuk mewarisi relasi dokter
+        $queryExpired = (clone $queryVerified)
+                            ->select($selectColumns) // Pastikan kolom yang sama dipilih
+                            ->where('status_berkas', '!=', 'Sudah Diverifikasi')
+                            ->whereDate('tgl_kunjungan', '<=', $today); 
+
+        // --- TERAPKAN FILTER PADA KEDUA QUERY SEBELUM UNION ---
+        // Terapkan semua filter yang sama pada kedua kueri dasar sebelum menggabungkan.
+        
+        $commonFilters = function ($q) use ($request) {
+            // Filter Kategori Pendaftaran
+            if ($request->filled('kategori_pendaftaran')) {
+                $q->where('kategori_pendaftaran', $request->kategori_pendaftaran);
+            }
+            
+            // Filter Tanggal Mulai
+            if ($request->filled('start_date')) {
+                $q->whereDate('tgl_kunjungan', '>=', $request->start_date);
+            }
+
+            // Filter Tanggal Akhir
+            if ($request->filled('end_date')) {
+                $q->whereDate('tgl_kunjungan', '<=', $request->end_date);
+            }
+
+            // Filter Status Pemeriksaan
+            if ($request->filled('status_pemeriksaan')) {
+                $q->where('status_pemeriksaan', $request->status_pemeriksaan);
+            }
+
+            // Filter Nama Pasien
+            if ($request->filled('nama_pasien')) {
+                $q->where('nama_pasien', 'like', '%' . $request->nama_pasien . '%');
+            }
+        };
+
+        $queryVerified->where($commonFilters);
+        $queryExpired->where($commonFilters);
+        
+        // --- GABUNGKAN MENGGUNAKAN UNION (UNION HANYA MENGAMBIL KOLOM DARI QUERY PERTAMA) ---
+        // Catatan: Union di Eloquent hanya mengizinkan WITH pada kueri pertama.
+        // Untungnya, kedua query kita berasal dari model yang sama.
+        $query = $queryVerified->union($queryExpired);
+
+        // Dapatkan ID pasien hasil union
+        $pasienIds = $query->pluck('id')->unique()->toArray();
+
+        // --- AMBIL DATA AKHIR DENGAN RELASI MENGGUNAKAN ID HASIL UNION ---
+        $dataPasien = DataPasien::with('dokter')
+                                ->whereIn('id', $pasienIds)
+                                ->orderBy('tgl_kunjungan', 'desc')
+                                ->get();
+        
+        // 2. Ambil daftar kategori unik
         $kategoriList = DataPasien::select('kategori_pendaftaran')
-                            ->distinct()
-                            ->pluck('kategori_pendaftaran')
-                            ->filter() // Menghapus nilai kosong/null jika ada
-                            ->sort()
-                            ->values()
-                            ->toArray();
+                                ->distinct()
+                                ->pluck('kategori_pendaftaran')
+                                ->filter()
+                                ->sort()
+                                ->values()
+                                ->toArray();
 
         // 3. Update data yang di-pass ke view
         return view('admin.riwayat_pasien', [
@@ -573,8 +609,8 @@ class AdminController extends Controller
             'filterEndDate' => $request->end_date,
             'filterStatusPemeriksaan' => $request->status_pemeriksaan,
             'filterNamaPasien' => $request->nama_pasien,
-            'filterKategori' => $request->kategori_pendaftaran, // Data filter yang sedang aktif
-            'kategoriList' => $kategoriList,                     // Daftar semua kategori unik
+            'filterKategori' => $request->kategori_pendaftaran,
+            'kategoriList' => $kategoriList,
         ]);
     }
 

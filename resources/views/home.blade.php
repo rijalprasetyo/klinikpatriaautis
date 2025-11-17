@@ -3,10 +3,11 @@
 @section('content')
 
 @php
-    // Definisi Kategori Baru untuk konsistensi
+    use Carbon\Carbon;
     $kategoriSktm = 'Disabilitas dengan Surat Keterangan Tidak Mampu';
     $kategoriNonSktm = 'Disabilitas tanpa Surat Keterangan Tidak Mampu';
     $kategoriUmum = 'Masyarakat Umum'; // Kategori yang memiliki logika status berkas
+    $today = Carbon::today()->toDateString();
 @endphp
 
 <style>
@@ -23,6 +24,11 @@
         --text-secondary: #64748b;
         --border: #e2e8f0;
         --success: #16a34a;
+        --warning: #d97706;
+        --warning-light: #fef3c7;
+        --error: #dc2626; /* MERAH UNTUK DITOLAK */
+        --error-light: #fee2e2; /* MERAH MUDA */
+        --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
         --success-light: #dcfce7;
         --warning: #d97706;
         --warning-light: #fef3c7;
@@ -43,6 +49,20 @@
         padding-right: 1.5rem;
         padding-top: 1.5rem;
         padding-bottom: 1.5rem;
+    }
+
+    .badge-custom.pending-grey { 
+    background: #f1f5f9; 
+    color: #64748b; 
+    }
+    /* BARU: Gaya untuk status Ditolak */
+    .badge-custom.rejected { 
+        background: var(--error-light); 
+        color: var(--error); 
+    }
+    /* BARU: Gaya untuk notifikasi Ditolak */
+    .status-note.note-error { 
+        color: var(--error);
     }
     
     section {
@@ -900,28 +920,45 @@
                                     $isUmum = ($data->kategori_pendaftaran ?? '') == $kategoriUmum;
                                     $statusBerkas = $data->status_berkas ?? 'Menunggu';
                                     $statusPemeriksaan = $data->status_pemeriksaan ?? 'Belum Diperiksa';
+                                    $tglKunjungan = \Carbon\Carbon::parse($data->tgl_kunjungan)->toDateString();
                                     
-                                    // Tentukan Status Utama yang akan ditampilkan
+                                    // 1. Logika untuk menyembunyikan jika Ditolak & sudah Expired
+                                    $isExpiredAndRejected = ($isUmum && $statusBerkas == 'Ditolak' && $tglKunjungan < $today);
+                                    
+                                    if ($isExpiredAndRejected) {
+                                        continue; // Hentikan pemrosesan baris ini (Tidak ditampilkan)
+                                    }
+                                    
+                                    // 2. Tentukan Status Tampil, Class, dan Note
                                     $statusTampil = '';
-                                    $badgeClass = 'warning'; // Default untuk pemeriksaan atau status berkas belum verifikasi
+                                    $badgeClass = 'warning'; 
                                     $showNote = false;
-                                    
+                                    $noteClass = '';
+                                    $noteText = '';
+
                                     if ($isUmum) {
-                                        // LOGIKA KHUSUS MASYARAKAT UMUM
                                         if ($statusBerkas == 'Sudah Diverifikasi') {
-                                            $statusTampil = $statusPemeriksaan; // Tampilkan status pemeriksaan
+                                            $statusTampil = $statusPemeriksaan;
                                             $badgeClass = ($statusPemeriksaan == 'Sudah Diperiksa') ? 'success' : 'warning';
-                                            $showNote = true; // Tampilkan catatan verifikasi
-                                        } else {
-                                            $statusTampil = $statusBerkas; // Tampilkan status berkas
+                                            $showNote = true; 
+                                            $noteText = '<i class="fa-solid fa-check-circle"></i> Berkas anda sudah diverifikasi dan bisa melakukan pemeriksaan sesuai jadwal';
+
+                                        } elseif ($statusBerkas == 'Ditolak') {
+                                            $statusTampil = 'Ditolak';
+                                            $badgeClass = 'rejected'; // MERAH DITOLAK
+                                            $showNote = true;
+                                            $noteClass = 'note-error';
+                                            $noteText = '<i class="fa-solid fa-circle-xmark"></i> Pemeriksaan tidak bisa dilakukan, anda akan dihubungi oleh admin klinik.';
+
+                                        } else { // Menunggu
+                                            $statusTampil = $statusBerkas;
                                             $badgeClass = 'pending-grey';
                                         }
                                     } else {
-                                        // LOGIKA KATEGORI PRIORITAS (Hanya tampilkan status pemeriksaan)
+                                        // LOGIKA KATEGORI PRIORITAS (Non-Umum)
                                         $statusTampil = $statusPemeriksaan;
                                         $badgeClass = ($statusPemeriksaan == 'Sudah Diperiksa') ? 'success' : 'warning';
                                     }
-
                                 @endphp
                                 <tr>
                                     <td class="text-center">
@@ -933,15 +970,15 @@
                                     </td>
                                     <td>
                                         {{ $data->nama_pasien }} <br>
-                                        <small class="text-muted">{{ $data->layanan_id ?? '-' }}</small>
+                                        <small class="text-muted">{{ $data->layanan_id ?? '-' }} <br> {{ $data->kategori_pendaftaran ?? 'N/A' }}</small>                                         
                                     </td>
                                     <td class="text-center">
                                         <div class="status-group">
                                             <span class="badge-custom {{ $badgeClass }}">{{ $statusTampil }}</span> 
                                             
                                             @if ($showNote)
-                                                <span class="status-note text-success">
-                                                    <i class="fa-solid fa-check-circle"></i> Berkas anda sudah diverifikasi dan bisa melakukan pemeriksaan sesuai jadwal
+                                                <span class="status-note {{ $noteClass }}">
+                                                    {!! $noteText !!}
                                                 </span>
                                             @endif
                                         </div>
@@ -962,21 +999,39 @@
                 <div class="mobile-schedule-container">
                     @forelse ($jadwal as $data)
                         @php
+                            
                             $isUmum = ($data->kategori_pendaftaran ?? '') == $kategoriUmum;
                             $statusBerkas = $data->status_berkas ?? 'Menunggu';
                             $statusPemeriksaan = $data->status_pemeriksaan ?? 'Belum Diperiksa';
+                            $tglKunjungan = Carbon::parse($data->tgl_kunjungan)->toDateString(); // Mengakses Carbon
                             
-                            // Tentukan Status Utama yang akan ditampilkan
+                            // Logika Skip harus diulang di sini untuk forelse mobile jika Anda ingin menggunakan array $jadwal utuh
+                            $isExpiredAndRejected = ($isUmum && $statusBerkas == 'Ditolak' && $tglKunjungan < $today);
+                            
+                            if ($isExpiredAndRejected) {
+                                continue;
+                            }
+                            
+                            // Definisikan variabel Note di sini untuk menghindari error
                             $statusTampil = '';
                             $badgeClass = 'warning'; 
                             $showNote = false;
-                            
+                            $noteClass = '';
+                            $noteText = '';
+
                             if ($isUmum) {
                                 if ($statusBerkas == 'Sudah Diverifikasi') {
                                     $statusTampil = $statusPemeriksaan;
                                     $badgeClass = ($statusPemeriksaan == 'Sudah Diperiksa') ? 'success' : 'warning';
+                                    $showNote = true; 
+                                    $noteText = '<i class="fa-solid fa-check-circle"></i> Berkas anda sudah diverifikasi dan bisa melakukan pemeriksaan sesuai jadwal';
+                                } elseif ($statusBerkas == 'Ditolak') {
+                                    $statusTampil = 'Ditolak';
+                                    $badgeClass = 'rejected'; // MERAH DITOLAK
                                     $showNote = true;
-                                } else {
+                                    $noteClass = 'note-error';
+                                    $noteText = '<i class="fa-solid fa-circle-xmark"></i> Pemeriksaan tidak bisa dilakukan, anda akan dihubungi oleh admin klinik.';
+                                } else { // Menunggu (status berkas lainnya)
                                     $statusTampil = $statusBerkas;
                                     $badgeClass = 'pending-grey';
                                 }
@@ -994,8 +1049,8 @@
                                     <span class="badge-custom {{ $badgeClass }}">{{ $statusTampil }}</span> 
                                     
                                     @if ($showNote)
-                                        <span class="status-note text-success">
-                                            <i class="fa-solid fa-check-circle"></i> Berkas anda sudah diverifikasi dan bisa melakukan pemeriksaan sesuai jadwal
+                                        <span class="status-note {{ $noteClass }}">
+                                            {!! $noteText !!}
                                         </span>
                                     @endif
                                 </div>

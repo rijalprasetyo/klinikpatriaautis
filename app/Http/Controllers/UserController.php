@@ -269,19 +269,35 @@ class UserController extends Controller
 
     public function riwayatPasien()
     {
-        // Pastikan user sudah login
-        if (!Auth::check()) {
-            return redirect('/login'); // Arahkan ke halaman login jika belum
-        }
+        // ... (Auth check dan setup $userId, $today) ...
 
         $userId = Auth::id();
-        
+        $today = Carbon::today()->toDateString(); 
 
-        // 1. Ambil data pasien yang user_id-nya sesuai dan statusnya 'Selesai Diperiksa'
-        // KOREKSI: Relasi 'layanan' dihapus. Relasi 'dokter' tetap dipertahankan.
-        $dataPasien = DataPasien::where('user_id', $userId)
-            ->where('status_pemeriksaan', 'Selesai Diperiksa') // HANYA STATUS SELESAI (Ini benar untuk riwayat)
-            ->with(['dokter']) // Memuat relasi dokter (perlu diakses dengan nullsafe di view)
+        // Ambil SEMUA kolom dari tabel data_pasien
+        $selectColumns = ['data_pasien.*'];
+
+        // 1. QUERY RIWAYAT SELESAI (Memilih semua kolom)
+        $querySelesai = DataPasien::select($selectColumns)
+            ->where('user_id', $userId)
+            ->where('status_pemeriksaan', 'Selesai Diperiksa');
+
+        // 2. QUERY JADWAL DITOLAK EXPIRED (Memilih semua kolom)
+        $queryDitolakExpired = DataPasien::select($selectColumns) 
+            ->where('user_id', $userId)
+            ->where('status_berkas', 'Ditolak')
+            ->whereDate('tgl_kunjungan', '<=', $today); 
+
+        // 3. GABUNGKAN (UNION) dan Ambil ID unik
+        // Karena kita menggunakan UNION pada builder Eloquent yang memilih semua kolom, 
+        // kita tetap perlu mengambil ID untuk query final.
+        $combinedQuery = $querySelesai->union($queryDitolakExpired);
+
+        $pasienIds = $combinedQuery->pluck('id')->unique()->toArray();
+
+        // 4. Ambil data Model lengkap dengan relasi 'dokter'
+        $dataPasien = DataPasien::with(['dokter'])
+            ->whereIn('id', $pasienIds)
             ->orderBy('tgl_kunjungan', 'desc')
             ->get();
 

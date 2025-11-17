@@ -140,6 +140,15 @@
         font-size: 0.95rem;
     }
 
+    /* Mengatasi input date yang dijadikan text/disabled */
+    .form-control[readonly], .form-control:disabled {
+        background-color: var(--bg-main);
+        opacity: 1; /* Override default disabled opacity */
+        font-weight: 600;
+        color: var(--primary-dark);
+    }
+
+
     /* === Alert Styling === */
     .alert-info {
         background-color: #e3f2fd;
@@ -345,6 +354,7 @@
         flex: 1;
         text-align: center;
         position: relative;
+        /* z-index: 2; Dihapus agar line-fill tidak terpotong */
     }
 
     .progress-step-circle {
@@ -492,7 +502,7 @@
         }
 
         .payment-progress {
-             /* Mengurangi margin vertikal pada mobile */
+            /* Mengurangi margin vertikal pada mobile */
             margin: 15px 0; 
         }
 
@@ -507,7 +517,7 @@
         }
         
         .progress-line {
-             top: 15px; /* Sesuaikan posisi line */
+            top: 15px; /* Sesuaikan posisi line */
         }
 
         .btn-lg {
@@ -575,6 +585,9 @@
                 {{-- Input file tersembunyi untuk SKTM --}}
                 <input type="file" name="sktm" id="sktm_input" class="d-none" required accept=".jpg,.jpeg,.png,.pdf">
             @endif
+            
+            {{-- HIDDEN INPUT UNTUK TANGGAL KUNJUNGAN SEBENARNYA (YYYY-MM-DD) --}}
+            <input type="hidden" name="tgl_kunjungan" id="tgl_kunjungan_hidden" value="{{ old('tgl_kunjungan') }}">
 
             {{-- DATA PASIEN --}}
             <h4 class="form-section-title mt-3">Data Pasien & Pendamping</h4>
@@ -655,9 +668,9 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Tanggal Kunjungan</label>
-                    <input type="date" id="tgl_kunjungan" name="tgl_kunjungan" class="form-control" value="{{ old('tgl_kunjungan') }}" required>
-                    <small class="text-info mt-1 d-block">
-                        {{-- Pesan akan diisi oleh JavaScript sesuai tanggal yang valid --}}
+                    {{-- DIUBAH MENJADI INPUT TEXT/READONLY --}}
+                    <input type="text" id="tgl_kunjungan_display" class="form-control" readonly required value="Menghitung tanggal..."> 
+                    <small class="text-info mt-1 d-block" id="tgl_kunjungan_info">
                         <i class="fa-solid fa-calendar-alt me-1"></i>
                         Pendaftaran hanya bisa untuk kunjungan tepat 3 hari ke depan (H+3, tidak termasuk hari Jumat).
                     </small>
@@ -779,18 +792,18 @@
             </div>
 
             <div class="mt-4 d-flex gap-2">
-                <button type="button" id="btnConfirm" class="btn btn-primary w-100 btn-lg">
-                    <i class="fa-solid fa-paper-plane me-2"></i> Kirim Pendaftaran
-                </button>
                 <a href="{{ url()->previous() }}" class="btn btn-secondary btn-lg" style="min-width: 150px;">
                     <i class="fa-solid fa-arrow-left me-1"></i> Kembali
                 </a>
+                <button type="button" id="btnConfirm" class="btn btn-primary w-100 btn-lg">
+                    <i class="fa-solid fa-paper-plane me-2"></i> Kirim Pendaftaran
+                </button>
             </div>
         </form>
     </div>
 </div>
 
-{{-- MODAL PEMBAYARAN --}}
+{{-- MODAL PEMBAYARAN (TIDAK BERUBAH) --}}
 <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-md modal-dialog-centered">
     <div class="modal-content rounded-3 shadow">
@@ -831,7 +844,7 @@
   </div>
 </div>
 
-{{-- MODAL KONFIRMASI (TIDAK BERUBAH) --}}
+{{-- MODAL KONFIRMASI (DIUBAH) --}}
 <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content rounded-3 shadow">
@@ -855,7 +868,8 @@
                 {{-- LAYANAN TIDAK MENGGUNAKAN ID LAGI --}}
                 <tr><th>Layanan</th><td id="c_layanan_id"></td></tr>
                 <tr><th>Keluhan</th><td id="c_keluhan"></td></tr>
-                <tr><th>Tanggal Kunjungan</th><td id="c_tgl_kunjungan"></td></tr>
+                {{-- TANGGAL KUNJUNGAN MENAMPILKAN FORMAT LOKAL --}}
+                <tr><th>Tanggal Kunjungan</th><td id="c_tgl_kunjungan"></td></tr> 
                 <tr><th>Jam Kunjungan</th><td id="c_waktu_id"></td></tr>
                 <tr><th>Biaya</th><td>{{ $biayaFormatted }}</td></tr>
                 <tr><th>Bukti Pembayaran</th><td id="c_bukti_pembayaran"></td></tr>
@@ -883,7 +897,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const submitBtn = document.getElementById('btnSubmitConfirm');
     const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal')); 
     const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal')); 
-    const tglKunjunganInput = document.getElementById('tgl_kunjungan');
+    
+    // Elemen Tanggal Kunjungan yang Dimodifikasi
+    const tglKunjunganDisplay = document.getElementById('tgl_kunjungan_display');
+    const tglKunjunganHidden = document.getElementById('tgl_kunjungan_hidden');
+    const tglKunjunganInfo = document.getElementById('tgl_kunjungan_info');
+    
     const waktuSelect = document.getElementById('waktu_id');
     const isSktmCategory = @json($isSktm);
     const isMasyarakatUmum = @json($isMasyarakatUmum);
@@ -912,6 +931,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const progressFill = document.getElementById('progress_fill');
 
     let paymentModalOpened = false;
+    let validBookingDateString = null; // Menyimpan tanggal YYYY-MM-DD yang valid
 
     // --- LOGIC LAYANAN (TIDAK BERUBAH) ---
     if (!isMasyarakatUmum) {
@@ -1134,12 +1154,20 @@ document.addEventListener('DOMContentLoaded', function() {
     `;
     document.head.appendChild(style);
 
-    // --- DATE & TIME VALIDATION (LOGIKA H+3 BARU) ---
+    // --- DATE & TIME VALIDATION (LOGIKA H+3 BARU - Disesuaikan untuk tampilan) ---
     
     function checkWaktuAvailability() { 
-        // Logika check jam yang sudah lewat di hari yang sama
+        // Menggunakan tanggal dari hidden input
+        const selectedDateString = tglKunjunganHidden.value;
+        
+        if (!selectedDateString) {
+            // Jika tanggal belum terisi (belum ada tanggal valid), non-aktifkan jam
+            waktuSelect.disabled = true;
+            return;
+        }
+
         const today = new Date();
-        const selectedDate = new Date(tglKunjunganInput.value);
+        const selectedDate = new Date(selectedDateString);
         
         const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
         const selectedDateOnly = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
@@ -1148,6 +1176,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const currentHour = today.getHours(); 
         const cutoffHour = currentHour + 1;
 
+        waktuSelect.disabled = false;
         Array.from(waktuSelect.options).forEach(option => {
             if (option.value === "") {
                 option.disabled = false;
@@ -1184,7 +1213,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const yyyy = date.getFullYear();
         const mm = String(date.getMonth() + 1).padStart(2, '0');
         const dd = String(date.getDate()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd}`;
+        return `${yyyy}-${mm}-${dd}`; // Format YYYY-MM-DD untuk backend
+    }
+    
+    // Fungsi untuk format tampilan (e.g., 20 November 2025)
+    function formatDisplayDate(dateString) {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        // Gunakan 'id-ID' untuk mendapatkan nama bulan/hari dalam bahasa Indonesia
+        return date.toLocaleDateString('id-ID', options); 
     }
 
     // Fungsi pembantu untuk mencari tanggal kunjungan yang valid (tepat H+3 dan bukan Jumat)
@@ -1203,17 +1241,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Cek jika hari H+3 (setelah melompati Jumat) ternyata adalah Jumat.
-        // Seharusnya tidak terjadi, tapi jika terjadi, ini berarti tidak ada tanggal valid
-        if (targetDate.getDay() === 5) {
-            return null;
-        }
-
-        // Khusus untuk H+3: Jika hari ini Selasa, H+3 (Kalender) adalah Jumat.
+        // Cek lagi: Jika hari ini Selasa, H+3 (Kalender) adalah Jumat.
         let checkFriday = new Date();
         checkFriday.setDate(checkFriday.getDate() + 3);
         if (checkFriday.getDay() === 5) { // Jika hari ini Selasa (2), H+3 jatuh di Jumat (5)
-             return null; 
+            return null; 
         }
 
         return targetDate;
@@ -1223,72 +1255,49 @@ document.addEventListener('DOMContentLoaded', function() {
     function setTanggalKunjunganConstraint() {
         const validDateObj = calculateValidBookingDate(); 
         
-        // Reset atribut
-        tglKunjunganInput.setAttribute('min', '');
-        tglKunjunganInput.setAttribute('max', '');
-
-        // Hapus event listener lama
-        tglKunjunganInput.removeEventListener('input', checkDateAndValidate);
-        tglKunjunganInput.removeEventListener('change', checkDateAndValidate);
-
-
         if (validDateObj) {
-            const validDateString = formatDate(validDateObj);
+            // YYYY-MM-DD untuk dikirim ke backend
+            validBookingDateString = formatDate(validDateObj);
             
-            // Set min dan max sama agar hanya tanggal ini yang bisa dipilih
-            tglKunjunganInput.setAttribute('min', validDateString);
-            tglKunjunganInput.setAttribute('max', validDateString);
-            tglKunjunganInput.value = validDateString; // Pre-isi dengan tanggal valid
+            // Format tampilan (e.g., Rabu, 20 November 2025)
+            const validDateDisplay = formatDisplayDate(validBookingDateString);
+            
+            tglKunjunganHidden.value = validBookingDateString; // Set hidden input
+            tglKunjunganDisplay.value = validDateDisplay; // Set display input (readonly)
+            tglKunjunganDisplay.style.color = 'var(--primary-dark)'; // Tambahkan warna untuk penekanan
 
             // Tampilkan pesan info yang sesuai
-            document.querySelector('.text-info').innerHTML = `
+            tglKunjunganInfo.innerHTML = `
                 <i class="fa-solid fa-calendar-alt me-1"></i>
-                Pendaftaran hanya bisa untuk kunjungan tepat pada tanggal: <strong>${validDateString}</strong> (H+3, tidak termasuk Jumat).
+                Tanggal kunjungan sudah ditentukan: <strong>${validDateDisplay}</strong> (Tepat H+3 dan bukan Jumat).
             `;
             
-            // Aktifkan input kembali
-            tglKunjunganInput.disabled = false;
-            waktuSelect.disabled = false;
-
-
-            tglKunjunganInput.addEventListener('input', checkDateAndValidate);
-            tglKunjunganInput.addEventListener('change', checkDateAndValidate);
-            
-            // Panggil validasi jam untuk tanggal yang sudah terisi
+            // Panggil validasi jam
             checkWaktuAvailability();
 
         } else {
             // Kondisi saat H+3 jatuh di hari Jumat (Contoh: Hari ini Selasa)
-            tglKunjunganInput.value = '';
-            tglKunjunganInput.disabled = true; // Non-aktifkan input tanggal
+            tglKunjunganHidden.value = '';
+            tglKunjunganDisplay.value = 'Tidak Tersedia';
+            tglKunjunganDisplay.style.color = 'var(--danger)';
+            tglKunjunganDisplay.disabled = true; // Non-aktifkan input display (seperti disabled)
+
             waktuSelect.disabled = true; // Non-aktifkan input jam
             waktuSelect.selectedIndex = 0; // Reset jam
             
-            document.querySelector('.text-info').innerHTML = `
+            tglKunjunganInfo.innerHTML = `
                 <i class="fa-solid fa-calendar-alt me-1"></i>
                 <strong class="text-danger">Tidak ada tanggal kunjungan yang tersedia.</strong> Pendaftaran H+3 jatuh pada hari Jumat (Tutup).
             `;
             showToast('Hari ini tidak tersedia tanggal kunjungan H+3 yang valid!', 'error');
         }
-
-
-        function checkDateAndValidate() {
-            if (!validDateObj) return;
-
-            const dateValue = tglKunjunganInput.value;
-            const validDateString = formatDate(validDateObj);
-
-            // Validasi keras: harus sama dengan tanggal yang ditentukan
-            if (dateValue !== validDateString) {
-                showToast(`Tanggal kunjungan harus tepat pada ${validDateString}!`, 'error');
-                tglKunjunganInput.value = validDateString; // Paksa kembali ke tanggal valid
-            }
-            
-            checkWaktuAvailability();
-        }
     }
 
     setTanggalKunjunganConstraint();
+    
+    // Tambahkan event listener untuk Jam Kunjungan agar menyesuaikan dengan tanggal (meski tanggal sudah pasti)
+    waktuSelect.addEventListener('change', checkWaktuAvailability);
+
 
     // --- UTILITY FUNCTIONS (TIDAK BERUBAH) ---
     function getLayananText() {
@@ -1327,11 +1336,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!layananOk) return;
 
         // 2. Validasi Form Standard & Tanggal Disabled
-        if (!form.checkValidity() || tglKunjunganInput.disabled) {
+        if (!form.checkValidity() || tglKunjunganDisplay.disabled) {
             form.classList.add('was-validated');
             
-            if (tglKunjunganInput.disabled) {
-                 showToast('Tidak ada tanggal kunjungan yang tersedia!', 'error');
+            if (tglKunjunganDisplay.disabled) {
+                // Jangan kirim form jika tanggal tidak tersedia
+                showToast('Tidak ada tanggal kunjungan yang tersedia untuk pendaftaran hari ini!', 'error'); 
             }
             
             if (buktiPembayaranInput.files.length === 0) {
@@ -1358,6 +1368,13 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast('Mohon unggah Dokumen SKTM!', 'error');
             return;
         }
+        
+        // Cek jika hidden date kosong (seharusnya sudah diisi oleh setTanggalKunjunganConstraint)
+        if (!tglKunjunganHidden.value) {
+            showToast('Tanggal kunjungan tidak terdeteksi. Harap muat ulang halaman.', 'error');
+            return;
+        }
+
 
         const formData = new FormData(form);
         const selectedWaktuOption = waktuSelect.options[waktuSelect.selectedIndex];
@@ -1365,7 +1382,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Finalisasi nilai layanan_id
         if (!isMasyarakatUmum) {
              if (layananSelect.value !== 'Lainnya') {
-                layananManualInput.value = layananSelect.value;
+                 layananManualInput.value = layananSelect.value;
              }
         } 
 
@@ -1380,7 +1397,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('c_layanan_id').textContent = getLayananText(); 
         
         document.getElementById('c_keluhan').textContent = formData.get('keluhan');
-        document.getElementById('c_tgl_kunjungan').textContent = formData.get('tgl_kunjungan');
+        // Menggunakan format tampilan untuk konfirmasi modal
+        document.getElementById('c_tgl_kunjungan').textContent = tglKunjunganDisplay.value; 
         document.getElementById('c_waktu_id').textContent = selectedWaktuOption.getAttribute('data-jam');
         document.getElementById('c_bukti_pembayaran').textContent = buktiPembayaranInput.files[0].name;
         
@@ -1401,6 +1419,16 @@ document.addEventListener('DOMContentLoaded', function() {
                  document.getElementById('layanan_manual_input').value = layananSelect.value;
              }
         } 
+
+        // Pastikan hidden input sudah terisi sebelum submit
+        if (!tglKunjunganHidden.value) {
+             // Seharusnya tidak terjadi karena sudah dicek di confirmBtn
+             showToast('Gagal: Tanggal kunjungan tidak terdeteksi.', 'error');
+             submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane me-2"></i> Kirim Sekarang';
+             submitBtn.disabled = false;
+             return;
+        }
+
 
         form.submit();
     });
