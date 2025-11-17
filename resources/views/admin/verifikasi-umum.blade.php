@@ -3,7 +3,7 @@
 @section('content')
 
 <style>
-/* ... (Bagian Style CSS tidak berubah, hanya menambah jarak untuk checkbox di aksi) ... */
+/* ... (Bagian Style CSS tidak berubah, tambahkan tab style jika diperlukan) ... */
 :root {
     --primary-blue: #007bff;
     --secondary-blue: #0056b3;
@@ -115,6 +115,11 @@
     color: var(--text-dark) !important;
 }
 
+/* Tambahkan style untuk tab-content agar terlihat bagus */
+.tab-content > .active {
+    display: block;
+}
+
 @media (max-width: 991.98px) {
     .filter-group .col-md-3, .col-md-2 {
         flex: 0 0 50%;
@@ -152,18 +157,7 @@
     {{-- FILTER --}}
     <form method="GET" action="{{ route('admin.verifikasi-umum') }}" id="filter-form" class="filter-group row mb-4 align-items-end">
         
-        {{-- Filter Status Berkas --}}
-        <div class="col-md-3 col-sm-6 mb-2">
-            <label for="status_berkas_filter" class="form-label">Status Berkas</label>
-            <select name="status_berkas" id="status_berkas_filter" class="form-select">
-                <option value="">-- Semua --</option>
-                <option value="Menunggu" {{ $filterStatusBerkas == 'Menunggu' ? 'selected' : '' }}>Menunggu</option>
-                <option value="Sudah Diverifikasi" {{ $filterStatusBerkas == 'Sudah Diverifikasi' ? 'selected' : '' }}>Sudah Diverifikasi</option>
-                <option value="Ditolak" {{ $filterStatusBerkas == 'Ditolak' ? 'selected' : '' }}>Ditolak</option>
-            </select>
-        </div>
-        
-        {{-- Filter Nama Pasien --}}
+        {{-- Filter Nama Pasien (Status Berkas dihapus) --}}
         <div class="col-md-3 col-sm-6 mb-2">
             <label for="nama_pasien" class="form-label">Cari Nama</label>
             <input type="text" name="nama_pasien" id="nama_pasien" class="form-control" placeholder="Nama pasien..." value="{{ $filterNamaPasien }}">
@@ -177,107 +171,217 @@
         </div>
     </form>
 
-    {{-- Aksi Massal dihilangkan --}}
 
+    {{-- TAB NAVIGATION --}}
+    <ul class="nav nav-tabs mb-3" id="verifikasiTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="listing-tab" data-bs-toggle="tab" data-bs-target="#listing" type="button" role="tab" aria-controls="listing" aria-selected="true">
+                Listing <span class="badge bg-primary ms-1">{{ $dataListing->count() }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="reject-tab" data-bs-toggle="tab" data-bs-target="#reject" type="button" role="tab" aria-controls="reject" aria-selected="false">
+                Reject <span class="badge bg-danger ms-1">{{ $dataReject->count() }}</span>
+            </button>
+        </li>
+    </ul>
 
-    {{-- TABEL DATA --}}
-    <div class="table-responsive">
+    {{-- TAB CONTENT --}}
+    <div class="tab-content" id="verifikasiTabsContent">
         
-        {{-- Loading Overlay --}}
-        <div class="loading-overlay" id="loading">
-            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
-                <span class="visually-hidden">Loading...</span>
+        {{-- TAB 1: LISTING (Menunggu) --}}
+        <div class="tab-pane fade show active" id="listing" role="tabpanel" aria-labelledby="listing-tab">
+            <div class="table-responsive">
+                
+                {{-- Loading Overlay --}}
+                <div class="loading-overlay" id="loading-listing">
+                    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                
+                @if($dataListing->isEmpty())
+                    <div class="alert alert-info text-center">
+                        <i class="fa-solid fa-circle-info me-2"></i>
+                        Tidak ada data pasien **Masyarakat Umum** dengan status **Menunggu**.
+                    </div>
+                @else
+                    <table class="table table-striped table-hover align-middle">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>No</th>
+                                <th>Nama Pasien</th>
+                                <th>Layanan</th>
+                                <th>Nomor HP</th>
+                                <th>Tgl Kunjungan</th>
+                                <th>Status Berkas</th>
+                                <th style="width: 20%;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($dataListing as $index => $pasien)
+                                <tr>
+                                    <td class="fw-bold">{{ $index + 1 }}</td>
+                                    <td>{{ $pasien->nama_pasien }}</td>
+                                    <td>{{ $pasien->layanan_id ?? '-' }}</td>
+                                    <td>
+                                        @if($pasien->nomor_hp)
+                                            @php
+                                                $cleanHp = preg_replace('/[^0-9]/', '', $pasien->nomor_hp);
+                                                $waNumber = (substr($cleanHp, 0, 1) === '0') ? '62' . substr($cleanHp, 1) : $cleanHp;
+                                                $waLink = 'https://wa.me/' . $waNumber;
+                                            @endphp
+                                            <a href="{{ $waLink }}" target="_blank" class="text-success text-decoration-none">
+                                                <i class="fab fa-whatsapp me-1"></i> {{ $pasien->nomor_hp }}
+                                            </a>
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
+                                    <td>{{ \Carbon\Carbon::parse($pasien->tgl_kunjungan)->isoFormat('D MMM YYYY') }}</td>
+                                    <td>
+                                        @php
+                                            $fileStatus = $pasien->status_berkas ?? 'Menunggu';
+                                            $fileBadgeClass = 'bg-berkas-kuning'; 
+                                            // Status di Listing hanya 'Menunggu'
+                                        @endphp
+                                        <span class="badge {{ $fileBadgeClass }}">
+                                            {{ $fileStatus }}
+                                        </span>
+                                    </td> 
+                                    <td>
+                                        <div class="action-buttons">
+                                            
+                                            {{-- Tombol Detail (Lihat) --}}
+                                            <button type="button" class="btn btn-sm btn-info text-white btn-detail btn-action-icon" 
+                                                    data-id="{{ $pasien->id }}" 
+                                                    title="Detail Pasien">
+                                                <i class="fa-solid fa-file-invoice"></i>
+                                            </button>
+                                            
+                                            {{-- Tombol Dokumen (Lihat) --}}
+                                            <button type="button" class="btn btn-sm btn-secondary btn-dokumen btn-action-icon" 
+                                                    data-bukti="{{ $pasien->bukti_pembayaran ? asset('public/storage/' . $pasien->bukti_pembayaran) : '' }}" 
+                                                    data-sktm="{{ $pasien->sktm ? asset('public/storage/' . $pasien->sktm) : '' }}" 
+                                                    title="Lihat Dokumen">
+                                                <i class="fa-solid fa-cloud-arrow-down"></i>
+                                            </button>
+
+                                            {{-- Tombol Ubah Status Berkas --}}
+                                            <button type="button" class="btn btn-sm btn-status-ubah btn-action-icon" 
+                                                    data-id="{{ $pasien->id }}" 
+                                                    data-current-status="{{ $fileStatus }}" 
+                                                    title="Ubah Status Berkas">
+                                                <i class="fa-solid fa-clipboard-check"></i>
+                                            </button>
+
+                                            {{-- Checkbox dihapus dari sini --}}
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
             </div>
         </div>
-        
-        @if($dataPasien->isEmpty())
-            <div class="alert alert-info text-center">
-                <i class="fa-solid fa-circle-info me-2"></i>
-                Tidak ada data pasien **Masyarakat Umum** yang ditemukan.
+
+        {{-- TAB 2: REJECT (Ditolak) --}}
+        <div class="tab-pane fade" id="reject" role="tabpanel" aria-labelledby="reject-tab">
+            <div class="table-responsive">
+                
+                {{-- Loading Overlay --}}
+                <div class="loading-overlay" id="loading-reject">
+                    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                
+                @if($dataReject->isEmpty())
+                    <div class="alert alert-info text-center">
+                        <i class="fa-solid fa-circle-info me-2"></i>
+                        Tidak ada data pasien **Masyarakat Umum** dengan status **Ditolak**.
+                    </div>
+                @else
+                    <table class="table table-striped table-hover align-middle">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>No</th>
+                                <th>Nama Pasien</th>
+                                <th>Layanan</th>
+                                <th>Nomor HP</th>
+                                <th>Tgl Kunjungan</th>
+                                <th>Status Berkas</th>
+                                <th style="width: 20%;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($dataReject as $index => $pasien)
+                                <tr>
+                                    <td class="fw-bold">{{ $index + 1 }}</td>
+                                    <td>{{ $pasien->nama_pasien }}</td>
+                                    <td>{{ $pasien->layanan_id ?? '-' }}</td>
+                                    <td>
+                                        @if($pasien->nomor_hp)
+                                            @php
+                                                $cleanHp = preg_replace('/[^0-9]/', '', $pasien->nomor_hp);
+                                                $waNumber = (substr($cleanHp, 0, 1) === '0') ? '62' . substr($cleanHp, 1) : $cleanHp;
+                                                $waLink = 'https://wa.me/' . $waNumber;
+                                            @endphp
+                                            <a href="{{ $waLink }}" target="_blank" class="text-success text-decoration-none">
+                                                <i class="fab fa-whatsapp me-1"></i> {{ $pasien->nomor_hp }}
+                                            </a>
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
+                                    <td>{{ \Carbon\Carbon::parse($pasien->tgl_kunjungan)->isoFormat('D MMM YYYY') }}</td>
+                                    <td>
+                                        @php
+                                            $fileStatus = $pasien->status_berkas ?? 'Menunggu'; // Seharusnya 'Ditolak' di tab ini
+                                            $fileBadgeClass = 'bg-berkas-merah'; 
+                                        @endphp
+                                        <span class="badge {{ $fileBadgeClass }}">
+                                            {{ $fileStatus }}
+                                        </span>
+                                    </td> 
+                                    <td>
+                                        <div class="action-buttons">
+                                            
+                                            {{-- Tombol Detail (Lihat) --}}
+                                            <button type="button" class="btn btn-sm btn-info text-white btn-detail btn-action-icon" 
+                                                    data-id="{{ $pasien->id }}" 
+                                                    title="Detail Pasien">
+                                                <i class="fa-solid fa-file-invoice"></i>
+                                            </button>
+                                            
+                                            {{-- Tombol Dokumen (Lihat) --}}
+                                            <button type="button" class="btn btn-sm btn-secondary btn-dokumen btn-action-icon" 
+                                                    data-bukti="{{ $pasien->bukti_pembayaran ? asset('public/storage/' . $pasien->bukti_pembayaran) : '' }}" 
+                                                    data-sktm="{{ $pasien->sktm ? asset('public/storage/' . $pasien->sktm) : '' }}" 
+                                                    title="Lihat Dokumen">
+                                                <i class="fa-solid fa-cloud-arrow-down"></i>
+                                            </button>
+
+                                            {{-- Tombol Ubah Status Berkas --}}
+                                            <button type="button" class="btn btn-sm btn-status-ubah btn-action-icon" 
+                                                    data-id="{{ $pasien->id }}" 
+                                                    data-current-status="{{ $fileStatus }}" 
+                                                    title="Ubah Status Berkas">
+                                                <i class="fa-solid fa-clipboard-check"></i>
+                                            </button>
+
+                                            {{-- CHECKBOX BIASA (NON-DATABASE) - Diletakkan di tab Reject --}}
+                                            <input type="checkbox" class="form-check-input ms-1 me-2" title="Checklist" data-id="{{ $pasien->id }}">
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
             </div>
-        @else
-            <table class="table table-striped table-hover align-middle">
-                <thead class="table-primary">
-                    <tr>
-                        <th>No</th>
-                        <th>Nama Pasien</th>
-                        <th>Layanan</th>
-                        <th>Nomor HP</th>
-                        <th>Tgl Kunjungan</th>
-                        <th>Status Berkas</th>
-                        <th style="width: 20%;">Aksi</th> {{-- Disesuaikan lebarnya untuk 4 item --}}
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($dataPasien as $index => $pasien)
-                        <tr>
-                            <td class="fw-bold">{{ $index + 1 }}</td>
-                            <td>{{ $pasien->nama_pasien }}</td>
-                            <td>{{ $pasien->layanan_id ?? '-' }}</td>
-                            <td>
-                                @if($pasien->nomor_hp)
-                                    @php
-                                        $cleanHp = preg_replace('/[^0-9]/', '', $pasien->nomor_hp);
-                                        $waNumber = (substr($cleanHp, 0, 1) === '0') ? '62' . substr($cleanHp, 1) : $cleanHp;
-                                        $waLink = 'https://wa.me/' . $waNumber;
-                                    @endphp
-                                    <a href="{{ $waLink }}" target="_blank" class="text-success text-decoration-none">
-                                        <i class="fab fa-whatsapp me-1"></i> {{ $pasien->nomor_hp }}
-                                    </a>
-                                @else
-                                    -
-                                @endif
-                            </td>
-                            <td>{{ \Carbon\Carbon::parse($pasien->tgl_kunjungan)->isoFormat('D MMM YYYY') }}</td>
-                            <td>
-                                @php
-                                    $fileStatus = $pasien->status_berkas ?? 'Menunggu';
-                                    $fileBadgeClass = 'bg-berkas-kuning'; 
-                                    if ($fileStatus == 'Sudah Diverifikasi') {
-                                        $fileBadgeClass = 'bg-berkas-biru';
-                                    } elseif ($fileStatus == 'Ditolak') {
-                                        $fileBadgeClass = 'bg-berkas-merah';
-                                    }
-                                @endphp
-                                <span class="badge {{ $fileBadgeClass }}">
-                                    {{ $fileStatus }}
-                                </span>
-                            </td> 
-                            <td>
-                                <div class="action-buttons">
-                                    
-                                    {{-- Tombol Detail (Lihat) --}}
-                                    <button type="button" class="btn btn-sm btn-info text-white btn-detail btn-action-icon" 
-                                            data-id="{{ $pasien->id }}" 
-                                            title="Detail Pasien">
-                                        <i class="fa-solid fa-file-invoice"></i>
-                                    </button>
-                                    
-                                    {{-- Tombol Dokumen (Lihat) --}}
-                                    <button type="button" class="btn btn-sm btn-secondary btn-dokumen btn-action-icon" 
-                                            data-bukti="{{ $pasien->bukti_pembayaran ? asset('public/storage/' . $pasien->bukti_pembayaran) : '' }}" 
-                                            data-sktm="{{ $pasien->sktm ? asset('public/storage/' . $pasien->sktm) : '' }}" 
-                                            title="Lihat Dokumen">
-                                        <i class="fa-solid fa-cloud-arrow-down"></i>
-                                    </button>
-
-                                    {{-- Tombol Ubah Status Berkas --}}
-                                    <button type="button" class="btn btn-sm btn-status-ubah btn-action-icon" 
-                                            data-id="{{ $pasien->id }}" 
-                                            data-current-status="{{ $fileStatus }}" 
-                                            title="Ubah Status Berkas">
-                                        <i class="fa-solid fa-clipboard-check"></i>
-                                    </button>
-
-                                    {{-- CHECKBOX BIASA (NON-DATABASE) --}}
-                                    <input type="checkbox" class="form-check-input ms-1 me-2" title="Checklist" data-id="{{ $pasien->id }}">
-                                </div>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        @endif
+        </div>
     </div>
 </div>
 
@@ -381,15 +485,18 @@
     </div>
 </div>
 
+
 {{-- JAVASCRIPT --}}
 <script>
     function showLoading() {
-        document.getElementById('loading').style.display = 'flex';
-        const table = document.querySelector('.table-responsive table');
-        if (table) table.style.opacity = '0.5';
+        // Tampilkan loading di kedua tab saat filter dijalankan
+        document.getElementById('loading-listing').style.display = 'flex';
+        document.getElementById('loading-reject').style.display = 'flex';
+        const activeTabContent = document.querySelector('.tab-content .active .table-responsive table');
+        if (activeTabContent) activeTabContent.style.opacity = '0.5';
     }
     
-    // Helper untuk membuat link WhatsApp
+    // Helper untuk membuat link WhatsApp (tetap sama)
     function createWhatsAppLink(phoneNumber) {
         if (!phoneNumber || phoneNumber === '-') return phoneNumber;
         let cleanHp = phoneNumber.replace(/[^0-9]/g, '');
@@ -403,33 +510,49 @@
         const dokumenModal = new bootstrap.Modal(document.getElementById('dokumenModal'));
         const statusModal = new bootstrap.Modal(document.getElementById('statusModal'));
         
-        // --- URL Endpoints ---
+        // --- URL Endpoints --- (tetap sama)
         const detailUrlTemplate = `{{ route('admin.pasien.detail', ['id' => 'PASIEN_ID']) }}`;
         const updateStatusUrlTemplate = `{{ route('admin.berkas.update-masyarakat-umum', ['id' => 'PASIEN_ID']) }}`; 
         
         let currentPasienId = null;
         
-        document.getElementById('loading').style.display = 'none';
+        // Sembunyikan semua loading overlay setelah DOM siap
+        document.getElementById('loading-listing').style.display = 'none';
+        document.getElementById('loading-reject').style.display = 'none';
 
-        // ===== CHECKLIST NON-DATABASE (Sederhana) =====
-        // Anda bisa menambahkan fungsionalitas di sini jika Anda ingin melakukan sesuatu 
-        // dengan ID pasien yang dicentang tanpa mengirimkannya ke database.
-        document.querySelectorAll('.form-check-input[type="checkbox"]').forEach(checkbox => {
+        // Event listener untuk tab, pastikan loading dihapus
+        const verifikasiTabs = document.getElementById('verifikasiTabs');
+        if (verifikasiTabs) {
+            verifikasiTabs.addEventListener('show.bs.tab', function (event) {
+                // Sembunyikan overlay pada tab yang akan aktif
+                const targetTabId = event.target.getAttribute('data-bs-target');
+                const loadingOverlay = document.querySelector(`${targetTabId} .loading-overlay`);
+                if (loadingOverlay) loadingOverlay.style.display = 'none';
+                
+                const table = document.querySelector(`${targetTabId} .table-responsive table`);
+                if (table) table.style.opacity = '1';
+            });
+        }
+
+
+        // ===== CHECKLIST NON-DATABASE (Sederhana) - Berada di Tab Reject =====
+        document.querySelectorAll('#reject .form-check-input[type="checkbox"]').forEach(checkbox => {
             checkbox.addEventListener('change', function() {
-                const checkedIds = Array.from(document.querySelectorAll('.form-check-input[type="checkbox"]:checked'))
-                                       .map(cb => cb.dataset.id);
-                console.log('ID Pasien yang dicentang (Non-Database):', checkedIds);
-                // Contoh: Anda dapat menyalin ID ini ke clipboard, atau menampilkan pop-up lokal.
+                const checkedIds = Array.from(document.querySelectorAll('#reject .form-check-input[type="checkbox"]:checked'))
+                                     .map(cb => cb.dataset.id);
+                console.log('ID Pasien yang dicentang (Tab Reject):', checkedIds);
             });
         });
 
-        // ===== MODAL DETAIL PASIEN (VIEW ONLY) =====
+        // ===== MODAL DETAIL PASIEN (VIEW ONLY) - Diambil dari kedua tab =====
         document.querySelectorAll('.btn-detail').forEach(button => {
             button.addEventListener('click', function() {
+                // ... (Logic detail tetap sama) ...
                 const pasienId = this.dataset.id;
                 const loading = document.getElementById('loading-spinner');
                 const detailTable = document.querySelector('#detailPasienModal table');
                 
+                // Reset dan tampilkan spinner
                 loading.style.display = 'block';
                 detailTable.style.display = 'none';
                 detailModal.show();
@@ -439,17 +562,21 @@
                     .then(data => {
                         const d = data.data;
 
-                        document.getElementById('detail-antrian').textContent = d.nomor_antrian;
-                        document.getElementById('detail-nama').textContent = d.nama_pasien;
-                        document.getElementById('detail-hp').innerHTML = createWhatsAppLink(d.nomor_hp); 
-                        document.getElementById('detail-layanan-name').textContent = d.layanan_id || '-'; 
-                        document.getElementById('detail-kategori').textContent = d.kategori_pendaftaran;
-                        document.getElementById('detail-tgl-jk').textContent = `${d.tgl_lahir} / ${d.jenis_kelamin}`;
-                        document.getElementById('detail-pendamping').textContent = d.pendamping;
-                        document.getElementById('detail-tgl-kunjungan').textContent = d.tgl_kunjungan;
-                        document.getElementById('detail-waktu').textContent = d.waktu_kunjungan;
-                        document.getElementById('detail-alamat').textContent = d.alamat;
-                        document.getElementById('detail-keluhan').textContent = d.keluhan;
+                        // Pastikan format tanggal/waktu sesuai kebutuhan (gunakan Carbon/JS for Intl)
+                        const tglLahirFormatted = d.tgl_lahir ? new Date(d.tgl_lahir).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) : '-';
+                        const tglKunjunganFormatted = d.tgl_kunjungan ? new Date(d.tgl_kunjungan).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) : '-';
+
+                        document.getElementById('detail-antrian').textContent = d.nomor_antrian || '-';
+                        document.getElementById('detail-nama').textContent = d.nama_pasien || '-';
+                        document.getElementById('detail-hp').innerHTML = createWhatsAppLink(d.nomor_hp || '-'); 
+                        document.getElementById('detail-layanan-name').textContent = d.layanan || '-'; 
+                        document.getElementById('detail-kategori').textContent = d.kategori_pendaftaran || '-';
+                        document.getElementById('detail-tgl-jk').textContent = `${tglLahirFormatted} / ${d.jenis_kelamin || '-'}`;
+                        document.getElementById('detail-pendamping').textContent = d.pendamping || '-';
+                        document.getElementById('detail-tgl-kunjungan').textContent = tglKunjunganFormatted;
+                        document.getElementById('detail-waktu').textContent = d.waktu_kunjungan || '-';
+                        document.getElementById('detail-alamat').textContent = d.alamat || '-';
+                        document.getElementById('detail-keluhan').textContent = d.keluhan || '-';
                         document.getElementById('detail-status-berkas').textContent = d.status_berkas || 'Menunggu';
 
 
@@ -465,9 +592,9 @@
             });
         });
 
-        // ===== MODAL DOKUMEN (VIEW ONLY) =====
+        // ===== MODAL DOKUMEN (VIEW ONLY) - Diambil dari kedua tab =====
         document.querySelectorAll('.btn-dokumen').forEach(button => {
-            // ... (Fungsi Modal Dokumen tidak berubah) ...
+            // ... (Fungsi Modal Dokumen tetap sama) ...
             button.addEventListener('click', function() {
                 const buktiPath = this.dataset.bukti;
                 const sktmPath = this.dataset.sktm;
@@ -502,12 +629,12 @@
             });
         });
     
-        // ===== MODAL UBAH STATUS BERKAS (SINGLE) =====
+        // ===== MODAL UBAH STATUS BERKAS (SINGLE) - Diambil dari kedua tab =====
         document.querySelectorAll('.btn-status-ubah').forEach(button => {
             button.addEventListener('click', function() {
                 currentPasienId = this.dataset.id;
                 const currentStatus = this.dataset.currentStatus || 'Menunggu';
-                // Kolom nama bergeser ke <td>:nth-child(2) karena checkbox sudah dihapus dari awal tabel
+                // Ambil nama pasien (kolom kedua setelah No)
                 const pasienName = this.closest('tr').querySelector('td:nth-child(2)').textContent; 
                 
                 document.getElementById('status-pasien-nama').textContent = pasienName;
@@ -520,7 +647,7 @@
             });
         });
 
-        // Handle Submit Form Status (Single)
+        // Handle Submit Form Status (Single) - (Tetap sama)
         document.getElementById('status-update-form').addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -537,6 +664,7 @@
                 method: 'POST', 
                 body: new FormData(form),
                 headers: {
+                    // Pastikan token CSRF sudah ada di form dan header X-Requested-With untuk AJAX
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             })
@@ -568,3 +696,4 @@
 </script>
 
 @endsection
+

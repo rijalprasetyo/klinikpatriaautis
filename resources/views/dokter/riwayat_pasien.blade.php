@@ -100,9 +100,13 @@
 }
 
 /* Penyesuaian khusus untuk Modal Status */
-#status-loading-spinner, #status-content, #status-modal-footer, 
+#status-loading-spinner, #status-content, #status-modal-footer {
+    /* Ini akan dihandle oleh JS, biarkan CSS utama defaultnya seperti yang ditentukan di inline style */
+}
+
+/* Khusus untuk loading upload, default tersembunyi */
 #upload-loading-before, #upload-loading-after {
-    display: none; /* Default hidden */
+    display: none; 
 }
 
 
@@ -141,7 +145,7 @@
     @endif
     @if ($errors->any())
         <div class="alert alert-danger alert-dismissible fade show">
-            Mohon periksa unggahan video Anda.
+            Mohon periksa unggahan file Anda.
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
@@ -237,44 +241,46 @@
                                 </span>
                             </td>
                             <td>
-                                {{-- Tombol Detail --}}
-                                <button class="btn btn-sm btn-info text-white me-1 btn-detail btn-action-icon" 
-                                        data-id="{{ $pasien->id }}" 
-                                        title="Detail Pasien">
-                                    <i class="fa-solid fa-file-invoice"></i>
-                                </button>
-                                
-                                {{-- Tombol Ubah Status --}}
-                                <button class="btn btn-sm btn-warning me-1 btn-status-pemeriksaan btn-action-icon" 
-                                        data-id="{{ $pasien->id }}" 
-                                        data-current-status="{{ $pasien->status_pemeriksaan }}" 
-                                        title="Ubah Status">
-                                    <i class="fa-solid fa-stethoscope"></i>
-                                </button>
-                                
-                                {{-- Tombol Video --}}
-                                <button class="btn btn-sm btn-primary me-1 btn-video btn-action-icon" 
-                                        data-id="{{ $pasien->id }}" 
-                                        data-video-before="{{ $pasien->video_before ? asset('public/storage/' . $pasien->video_before) : '' }}" 
-                                        data-video-after="{{ $pasien->video_after ? asset('public/storage/' . $pasien->video_after) : '' }}" 
-                                        title="Video">
-                                    <i class="fa-solid fa-video"></i>
-                                </button>
+                                <div class="action-buttons">
+                                    {{-- Tombol Detail --}}
+                                    <button class="btn btn-sm btn-info text-white me-1 btn-detail btn-action-icon" 
+                                            data-id="{{ $pasien->id }}" 
+                                            title="Detail Pasien">
+                                        <i class="fa-solid fa-file-invoice"></i>
+                                    </button>
+                                    
+                                    {{-- Tombol Ubah Status --}}
+                                    <button class="btn btn-sm btn-warning me-1 btn-status-pemeriksaan btn-action-icon" 
+                                            data-id="{{ $pasien->id }}" 
+                                            data-current-status="{{ $pasien->status_pemeriksaan }}" 
+                                            title="Ubah Status">
+                                        <i class="fa-solid fa-stethoscope"></i>
+                                    </button>
+                                    
+                                    {{-- Tombol Video/File (Diperbarui untuk File) --}}
+                                    <button class="btn btn-sm btn-primary me-1 btn-video btn-action-icon" 
+                                            data-id="{{ $pasien->id }}" 
+                                            data-video-before="{{ $pasien->video_before ? asset('public/storage/' . $pasien->video_before) : '' }}" 
+                                            data-video-after="{{ $pasien->video_after ? asset('public/storage/' . $pasien->video_after) : '' }}" 
+                                            title="Unggah/Lihat File Pemeriksaan">
+                                        <i class="fa-solid fa-video"></i>
+                                    </button>
 
-                                {{-- Tombol Catatan --}}
-                                <button class="btn btn-sm btn-success me-1 btn-catatan btn-action-icon" 
-                                        data-id="{{ $pasien->id }}" 
-                                        title="Catatan">
-                                    <i class="fa-solid fa-notes-medical"></i>
-                                </button>
-                                
-                                {{-- Tombol Lihat Feedback (Baru) --}}
-                                <button class="btn btn-sm btn-secondary btn-feedback-view btn-action-icon" 
-                                        data-id="{{ $pasien->id }}" 
-                                        data-feedback="{{ $pasien->feedback }}" 
-                                        title="Lihat Feedback">
-                                    <i class="fa-solid fa-comment-dots"></i>
-                                </button>
+                                    {{-- Tombol Catatan --}}
+                                    <button class="btn btn-sm btn-success me-1 btn-catatan btn-action-icon" 
+                                            data-id="{{ $pasien->id }}" 
+                                            title="Catatan">
+                                        <i class="fa-solid fa-notes-medical"></i>
+                                    </button>
+                                    
+                                    {{-- Tombol Lihat Feedback (Baru) --}}
+                                    <button class="btn btn-sm btn-secondary btn-feedback-view btn-action-icon" 
+                                            data-id="{{ $pasien->id }}" 
+                                            data-feedback="{{ $pasien->feedback }}" 
+                                            title="Lihat Feedback">
+                                        <i class="fa-solid fa-comment-dots"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     @endforeach
@@ -316,7 +322,7 @@
     </div>
 </div>
 
-{{-- Modal 2: Ubah Status Pemeriksaan (SUDAH DIMODIFIKASI) --}}
+{{-- Modal 2: Ubah Status Pemeriksaan --}}
 <div class="modal fade" id="statusPemeriksaanModal" tabindex="-1" aria-labelledby="statusPemeriksaanModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -332,11 +338,11 @@
                 @method('PUT')
                 <div class="modal-body">
                     {{-- SPINNER LOADING BARU --}}
-                    <div id="status-loading-spinner" class="text-center mb-3" style="display: block;">
+                    <div id="status-loading-spinner" class="text-center mb-3">
                         <div class="spinner-border text-warning" role="status"></div> Loading Data...
                     </div>
 
-                    <div id="status-content" style="display: none;">
+                    <div id="status-content">
                         {{-- BARIS DOKTER PASIEN (dari data AJAX) --}}
                         <p class="mb-1">
                             Dokter Penanggung Jawab: 
@@ -363,7 +369,7 @@
                     </div>
                 </div>
 
-                <div class="modal-footer" id="status-modal-footer" style="display: none;">
+                <div class="modal-footer" id="status-modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-warning">Simpan Perubahan</button>
                 </div>
@@ -372,75 +378,103 @@
     </div>
 </div>
 
-{{-- Modal 3: Video (DENGAN ANIMASI UPLOAD) --}}
+{{-- Modal 3: Video/File (DENGAN ANIMASI UPLOAD) --}}
 <div class="modal fade" id="videoModal" tabindex="-1" aria-labelledby="videoModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="videoModalLabel">
-                    <i class="fa-solid fa-video me-2"></i>Video Pemeriksaan Pasien
+                    <i class="fa-solid fa-video me-2"></i>File Pemeriksaan Pasien (Video/Foto)
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="form-upload-video" method="POST" action="" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body">
-                    <p class="text-muted mb-4">Unggah video baru (MP4/MOV, Maks. 25mb) atau lihat video yang sudah ada.</p>
+                    <p class="text-muted mb-4">Unggah file baru (Video/Foto) atau lihat yang sudah ada. Pilih hanya file yang ingin diubah. <span class="fw-bold text-danger">Maks. Video 25mb, Maks. Foto 2.5mb.</span></p>
+
                     <div class="row">
+                        {{-- Unggah/Lihat File Before --}}
                         <div class="col-md-6 mb-4">
                             <div class="card shadow-sm h-100">
-                                <div class="card-header bg-light fw-bold">Video Sebelum</div>
+                                <div class="card-header bg-light fw-bold">File Sebelum Pemeriksaan</div>
                                 <div class="card-body">
+                                    
+                                    {{-- Video/Image Player Container --}}
                                     <div class="video-container mb-3" id="player-before">
-                                         {{-- ANIMASI LOADING UNTUK UPLOAD --}}
+                                        
+                                        {{-- ANIMASI LOADING UNTUK UPLOAD --}}
                                         <div class="loading-overlay" id="upload-loading-before">
                                             <div class="spinner-border text-primary" role="status">
                                                 <span class="visually-hidden">Uploading...</span>
                                             </div>
-                                            <p class="mt-2 text-primary">Mengunggah Video...</p>
+                                            <p class="mt-2 text-primary">Mengunggah File...</p>
                                         </div>
                                         {{-- AKHIR ANIMASI LOADING --}}
+
+                                        {{-- TAG IMAGE BARU --}}
+                                        <img id="image-before-player" style="width: 100%; max-height: 300px; display: none;" class="rounded" alt="Foto Sebelum Pemeriksaan">
+                                        
+                                        {{-- TAG VIDEO LAMA --}}
                                         <video id="video-before-player" controls style="width: 100%; max-height: 300px; display: none;" class="rounded"></video>
-                                        <div id="video-before-not-found" class="alert alert-info text-center" style="display: block;">
-                                            <i class="fa-solid fa-triangle-exclamation me-1"></i> Belum ada video
+                                        
+                                        <div id="file-before-not-found" class="alert alert-info text-center" style="display: block;">
+                                            <i class="fa-solid fa-triangle-exclamation me-1"></i> Belum ada file diunggah.
                                         </div>
                                     </div>
+                                    
+                                    {{-- Upload Input --}}
                                     <div class="mb-3">
-                                        <label for="video_before_file" class="form-label">Unggah Video Baru</label>
-                                        <input class="form-control" type="file" id="video_before_file" name="video_before" accept="video/mp4,video/quicktime">
-                                        <small class="text-muted">Maks. 25mb</small>
+                                        <label for="video_before_file" class="form-label">Unggah File Baru</label>
+                                        <input class="form-control" type="file" id="video_before_file" name="video_before" accept="image/*,video/mp4,video/quicktime">
+                                        <small class="text-muted">MP4/MOV, JPEG/PNG/HEIC. Maks. Video 25mb, Foto 2.5mb</small>
                                     </div>
+
+                                    {{-- Tombol Hapus File Before --}}
                                     <button type="button" class="btn btn-outline-danger btn-sm w-100 mt-2 btn-delete-video" data-type="video_before" data-bs-target="#confirmDeleteModal" data-bs-toggle="modal" id="btn-delete-before" style="display: none;">
-                                        <i class="fa-solid fa-trash me-1"></i> Hapus
+                                        <i class="fa-solid fa-trash me-1"></i> Hapus File Sebelumnya
                                     </button>
                                 </div>
                             </div>
                         </div>
+
+                        {{-- Unggah/Lihat File After --}}
                         <div class="col-md-6 mb-4">
                             <div class="card shadow-sm h-100">
-                                <div class="card-header bg-light fw-bold">Video Sesudah</div>
+                                <div class="card-header bg-light fw-bold">File Sesudah Pemeriksaan</div>
                                 <div class="card-body">
                                     <div class="video-container mb-3" id="player-after">
+                                        
                                         {{-- ANIMASI LOADING UNTUK UPLOAD --}}
                                         <div class="loading-overlay" id="upload-loading-after">
                                             <div class="spinner-border text-primary" role="status">
                                                 <span class="visually-hidden">Uploading...</span>
                                             </div>
-                                            <p class="mt-2 text-primary">Mengunggah Video...</p>
+                                            <p class="mt-2 text-primary">Mengunggah File...</p>
                                         </div>
                                         {{-- AKHIR ANIMASI LOADING --}}
+
+                                        {{-- TAG IMAGE BARU --}}
+                                        <img id="image-after-player" style="width: 100%; max-height: 300px; display: none;" class="rounded" alt="Foto Sesudah Pemeriksaan">
+
+                                        {{-- TAG VIDEO LAMA --}}
                                         <video id="video-after-player" controls style="width: 100%; max-height: 300px; display: none;" class="rounded"></video>
-                                        <div id="video-after-not-found" class="alert alert-info text-center" style="display: block;">
-                                            <i class="fa-solid fa-triangle-exclamation me-1"></i> Belum ada video
+                                        
+                                        <div id="file-after-not-found" class="alert alert-info text-center" style="display: block;">
+                                            <i class="fa-solid fa-triangle-exclamation me-1"></i> Belum ada file diunggah.
                                         </div>
                                     </div>
+
+                                    {{-- Upload Input --}}
                                     <div class="mb-3">
-                                        <label for="video_after_file" class="form-label">Unggah Video Baru</label>
-                                        <input class="form-control" type="file" id="video_after_file" name="video_after" accept="video/mp4,video/quicktime">
-                                        <small class="text-muted">Maks. 25mb</small>
+                                        <label for="video_after_file" class="form-label">Unggah File Baru</label>
+                                        <input class="form-control" type="file" id="video_after_file" name="video_after" accept="image/*,video/mp4,video/quicktime">
+                                        <small class="text-muted">MP4/MOV, JPEG/PNG/HEIC. Maks. Video 25mb, Foto 2.5mb</small>
                                     </div>
+                                    
+                                    {{-- Tombol Hapus File After --}}
                                     <button type="button" class="btn btn-outline-danger btn-sm w-100 mt-2 btn-delete-video" data-type="video_after" data-bs-target="#confirmDeleteModal" data-bs-toggle="modal" id="btn-delete-after" style="display: none;">
-                                        <i class="fa-solid fa-trash me-1"></i> Hapus
+                                        <i class="fa-solid fa-trash me-1"></i> Hapus File Sesudahnya
                                     </button>
                                 </div>
                             </div>
@@ -510,7 +544,7 @@
     </div>
 </div>
 
-{{-- Modal 5: Lihat Feedback (Baru) --}}
+{{-- Modal 5: Lihat Feedback --}}
 <div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
@@ -534,7 +568,7 @@
 </div>
 
 
-{{-- Modal Konfirmasi Hapus Video --}}
+{{-- Modal Konfirmasi Hapus File --}}
 <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
@@ -566,13 +600,29 @@
         if (table) table.style.opacity = '0.5';
     }
 
+    // Helper untuk mengecek apakah path adalah file gambar/foto
+    function isImageFile(path) {
+        if (!path) return false;
+        const extension = path.split('.').pop().toLowerCase();
+        // Tambahkan heic/heif ke daftar ekstensi gambar
+        return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif'].includes(extension);
+    }
+    
+    // Helper untuk mengecek apakah path adalah file video
+    function isVideoFile(path) {
+        if (!path) return false;
+        const extension = path.split('.').pop().toLowerCase();
+        // Tambahkan mov ke daftar ekstensi video (quicktime)
+        return ['mp4', 'mov', 'flv', 'avi', 'wmv'].includes(extension);
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         const detailModal = new bootstrap.Modal(document.getElementById('detailPasienModal'));
         const statusPemeriksaanModal = new bootstrap.Modal(document.getElementById('statusPemeriksaanModal'));
         const videoModal = new bootstrap.Modal(document.getElementById('videoModal'));
         const catatanModal = new bootstrap.Modal(document.getElementById('catatanModal'));
         const confirmDeleteModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
-        const feedbackModal = new bootstrap.Modal(document.getElementById('feedbackModal')); // Modal Baru
+        const feedbackModal = new bootstrap.Modal(document.getElementById('feedbackModal')); 
         
         const formUpdateCatatan = document.getElementById('form-update-catatan');
         const formDeleteVideo = document.getElementById('form-delete-video');
@@ -604,8 +654,13 @@
 
         // Hide main page loading on page load
         document.getElementById('loading').style.display = 'none';
+        
+        // Sembunyikan semua loading upload di modal video
+        document.getElementById('upload-loading-before').style.display = 'none';
+        document.getElementById('upload-loading-after').style.display = 'none';
 
-        // ===== MODAL DETAIL PASIEN =====
+
+        // ===== MODAL DETAIL PASIEN (Functionalitas tidak berubah) =====
         document.querySelectorAll('.btn-detail').forEach(button => {
             button.addEventListener('click', function() {
                 const pasienId = this.dataset.id;
@@ -620,18 +675,22 @@
                     .then(response => response.json())
                     .then(data => {
                         const d = data.data;
-                        document.getElementById('detail-antrian').textContent = d.nomor_antrian;
+                        const tglLahirFormatted = d.tgl_lahir ? new Date(d.tgl_lahir).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) : '-';
+                        const tglKunjunganFormatted = d.tgl_kunjungan ? new Date(d.tgl_kunjungan).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) : '-';
+
+
+                        document.getElementById('detail-antrian').textContent = d.nomor_antrian || '-';
                         document.getElementById('detail-nama').textContent = d.nama_pasien;
                         document.getElementById('detail-hp').textContent = d.nomor_hp;
-                        document.getElementById('detail-tgl-jk').textContent = `${d.tgl_lahir} / ${d.jenis_kelamin}`;
+                        document.getElementById('detail-tgl-jk').textContent = `${tglLahirFormatted} / ${d.jenis_kelamin}`;
                         document.getElementById('detail-pendamping').textContent = d.pendamping;
-                        document.getElementById('detail-tgl-kunjungan').textContent = d.tgl_kunjungan;
+                        document.getElementById('detail-tgl-kunjungan').textContent = tglKunjunganFormatted;
                         document.getElementById('detail-waktu').textContent = d.waktu_kunjungan;
                         document.getElementById('detail-layanan').textContent = d.layanan;
                         document.getElementById('detail-kategori').textContent = d.kategori_pendaftaran;
                         
                         // Isi nama dokter penanggung jawab
-                        document.getElementById('detail-dokter-pj').textContent = d.dokter_nama || 'Belum Ditentukan';
+                        document.getElementById('detail-dokter-pj').textContent = d.dokter_penanggung_jawab || 'Belum Ditentukan';
 
                         document.getElementById('detail-alamat').textContent = d.alamat;
                         document.getElementById('detail-keluhan').textContent = d.keluhan;
@@ -649,7 +708,7 @@
             });
         });
 
-        // ===== MODAL UBAH STATUS (DIMODIFIKASI) =====
+        // ===== MODAL UBAH STATUS (Functionalitas tidak berubah) =====
         document.querySelectorAll('.btn-status-pemeriksaan').forEach(button => {
             button.addEventListener('click', function() {
                 const pasienId = this.dataset.id;
@@ -657,16 +716,13 @@
                 const content = document.getElementById('status-content');
                 const footer = document.getElementById('status-modal-footer');
                 
-                // Tampilkan loading, sembunyikan konten dan footer
                 loading.style.display = 'block';
                 content.style.display = 'none';
                 footer.style.display = 'none';
                 statusPemeriksaanModal.show();
                 
-                // Isi nama dokter yang login (dari hidden input)
                 document.getElementById('dokter-yg-login-nama').textContent = dokterLoginNama;
                 
-                // Ambil Detail Pasien (hanya untuk status dan dokter yang menangani saat ini)
                 fetch(detailUrlTemplate.replace('PASIEN_ID', pasienId))
                     .then(response => response.json())
                     .then(data => {
@@ -674,16 +730,10 @@
                         
                         document.getElementById('form-status-pemeriksaan').action = updatePemeriksaanUrlTemplate.replace('PASIEN_ID', pasienId);
                         
-                        // Tampilkan nama dokter penanggung jawab dari data pasien
                         document.getElementById('current-dokter-text').textContent = d.dokter_penanggung_jawab || 'Belum Ditentukan';
-                        
-                        // Tampilkan status saat ini
                         document.getElementById('current-status-text').textContent = d.status_pemeriksaan;
-                        
-                        // Set nilai pada dropdown sesuai status saat ini
                         document.getElementById('status_pemeriksaan_select').value = d.status_pemeriksaan;
                         
-                        // Sembunyikan loading, tampilkan konten dan footer
                         loading.style.display = 'none';
                         content.style.display = 'block';
                         footer.style.display = 'flex';
@@ -700,58 +750,95 @@
         });
 
 
-        // ===== MODAL VIDEO (DENGAN ANIMASI UPLOAD) =====
+        // ===== MODAL VIDEO/FILE (Fungsionalitas Diperbarui) =====
         document.querySelectorAll('.btn-video').forEach(button => {
             button.addEventListener('click', function() {
                 currentPasienId = this.dataset.id;
-                const videoBeforePath = this.dataset.videoBefore;
-                const videoAfterPath = this.dataset.videoAfter;
+                const pasienId = currentPasienId;
+                const filePathBefore = this.dataset.videoBefore; // Sekarang bisa berupa video atau foto
+                const filePathAfter = this.dataset.videoAfter;   // Sekarang bisa berupa video atau foto
 
                 const playerBefore = document.getElementById('video-before-player');
-                const notFoundBefore = document.getElementById('video-before-not-found');
+                const imageBefore = document.getElementById('image-before-player'); // Elemen baru
+                const notFoundBefore = document.getElementById('file-before-not-found'); // Ubah ID
                 const btnDeleteBefore = document.getElementById('btn-delete-before');
                 
                 const playerAfter = document.getElementById('video-after-player');
-                const notFoundAfter = document.getElementById('video-after-not-found');
+                const imageAfter = document.getElementById('image-after-player'); // Elemen baru
+                const notFoundAfter = document.getElementById('file-after-not-found'); // Ubah ID
                 const btnDeleteAfter = document.getElementById('btn-delete-after');
                 
-                // Reset input files
+                // Reset input files & loading
                 document.getElementById('video_before_file').value = '';
                 document.getElementById('video_after_file').value = '';
-
-                // Reset Upload loading
                 document.getElementById('upload-loading-before').style.display = 'none';
                 document.getElementById('upload-loading-after').style.display = 'none';
                 document.getElementById('btn-submit-video').disabled = false;
 
 
-                document.getElementById('form-upload-video').action = uploadVideoUrlTemplate.replace('PASIEN_ID', currentPasienId);
-                formDeleteVideo.action = deleteVideoUrlTemplate.replace('PASIEN_ID', currentPasienId);
+                document.getElementById('form-upload-video').action = uploadVideoUrlTemplate.replace('PASIEN_ID', pasienId);
+                formDeleteVideo.action = deleteVideoUrlTemplate.replace('PASIEN_ID', pasienId);
 
-                // Video Before
-                if (videoBeforePath) {
-                    playerBefore.src = videoBeforePath;
-                    playerBefore.load();
-                    playerBefore.style.display = 'block';
+                // --- LOGIKA TAMPILAN FILE BEFORE ---
+                if (filePathBefore) {
+                    
+                    if (isImageFile(filePathBefore)) {
+                        imageBefore.src = filePathBefore;
+                        imageBefore.style.display = 'block';
+                        playerBefore.style.display = 'none';
+                        playerBefore.removeAttribute('src');
+                    } else if (isVideoFile(filePathBefore)) {
+                        playerBefore.src = filePathBefore;
+                        playerBefore.load(); 
+                        playerBefore.style.display = 'block';
+                        imageBefore.style.display = 'none';
+                        imageBefore.removeAttribute('src');
+                    } else {
+                        playerBefore.removeAttribute('src');
+                        imageBefore.removeAttribute('src');
+                        playerBefore.style.display = 'none';
+                        imageBefore.style.display = 'none';
+                    }
+                    
                     btnDeleteBefore.style.display = 'block';
                     notFoundBefore.style.display = 'none';
+                    
                 } else {
-                    playerBefore.removeAttribute('src');
+                    playerBefore.removeAttribute('src'); 
+                    imageBefore.removeAttribute('src'); 
                     playerBefore.style.display = 'none';
+                    imageBefore.style.display = 'none';
                     btnDeleteBefore.style.display = 'none';
                     notFoundBefore.style.display = 'block';
                 }
 
-                // Video After
-                if (videoAfterPath) {
-                    playerAfter.src = videoAfterPath;
-                    playerAfter.load();
-                    playerAfter.style.display = 'block';
+                // --- LOGIKA TAMPILAN FILE AFTER ---
+                if (filePathAfter) {
+                    if (isImageFile(filePathAfter)) {
+                        imageAfter.src = filePathAfter;
+                        imageAfter.style.display = 'block';
+                        playerAfter.style.display = 'none';
+                        playerAfter.removeAttribute('src');
+                    } else if (isVideoFile(filePathAfter)) {
+                        playerAfter.src = filePathAfter;
+                        playerAfter.load(); 
+                        playerAfter.style.display = 'block';
+                        imageAfter.style.display = 'none';
+                        imageAfter.removeAttribute('src');
+                    } else {
+                        playerAfter.removeAttribute('src');
+                        imageAfter.removeAttribute('src');
+                        playerAfter.style.display = 'none';
+                        imageAfter.style.display = 'none';
+                    }
+
                     btnDeleteAfter.style.display = 'block';
                     notFoundAfter.style.display = 'none';
                 } else {
-                    playerAfter.removeAttribute('src');
+                    playerAfter.removeAttribute('src'); 
+                    imageAfter.removeAttribute('src'); 
                     playerAfter.style.display = 'none';
+                    imageAfter.style.display = 'none';
                     btnDeleteAfter.style.display = 'none';
                     notFoundAfter.style.display = 'block';
                 }
@@ -760,14 +847,13 @@
             });
         });
 
-        // Handler untuk menampilkan loading saat form upload video disubmit
+        // Handler untuk menampilkan loading saat form upload file disubmit
         formUploadVideo.addEventListener('submit', function(e) {
             
             const fileBefore = document.getElementById('video_before_file').files.length;
             const fileAfter = document.getElementById('video_after_file').files.length;
 
             if (fileBefore > 0 || fileAfter > 0) {
-                // Tampilkan loading spinner yang relevan
                 if (fileBefore > 0) {
                     document.getElementById('upload-loading-before').style.display = 'flex';
                 }
@@ -775,23 +861,21 @@
                     document.getElementById('upload-loading-after').style.display = 'flex';
                 }
                 
-                // Menonaktifkan tombol submit untuk mencegah double klik
                 document.getElementById('btn-submit-video').disabled = true;
                 
             } else {
-                // Jika tidak ada file yang dipilih, batalkan submit dan beri peringatan
                 e.preventDefault();
-                alert('Pilih setidaknya satu file video sebelum menyimpan.');
+                alert('Pilih setidaknya satu file (video atau foto) sebelum menyimpan.');
             }
         });
 
-        // Handle delete video button
+        // Handle delete file button
         document.querySelectorAll('.btn-delete-video').forEach(button => {
             button.addEventListener('click', function() {
                 videoModal.hide();
                 videoTypeToDelete = this.dataset.type;
-                const videoName = (videoTypeToDelete === 'video_before') ? 'Video Sebelum' : 'Video Sesudah';
-                document.getElementById('video-name-confirm').textContent = videoName;
+                const fileLabel = (videoTypeToDelete === 'video_before') ? 'File Sebelum Pemeriksaan' : 'File Sesudah Pemeriksaan';
+                document.getElementById('video-name-confirm').textContent = fileLabel;
                 confirmDeleteModal.show();
             });
         });
@@ -804,7 +888,7 @@
             }
         });
 
-        // ===== MODAL FEEDBACK (Baru) =====
+        // ===== MODAL FEEDBACK (Functionalitas tidak berubah) =====
         document.querySelectorAll('.btn-feedback-view').forEach(button => {
             button.addEventListener('click', function() {
                 const pasienName = this.closest('tr').querySelector('td:nth-child(2)').textContent;
@@ -818,7 +902,7 @@
         });
 
 
-        // ===== MODAL CATATAN =====
+        // ===== MODAL CATATAN (Functionalitas tidak berubah) =====
         function displayCatatanAlert(isSuccess, message) {
             const successAlert = document.getElementById('catatan-alert-success');
             const errorAlert = document.getElementById('catatan-alert-error');

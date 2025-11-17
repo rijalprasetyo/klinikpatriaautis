@@ -629,35 +629,33 @@ class AdminController extends Controller
     public function riwayatPasienMasyarakatUmum(Request $request) 
     {
         $filterNamaPasien = $request->input('nama_pasien');
-        $filterStatusBerkas = $request->input('status_berkas');
-
-        $query = DataPasien::where('kategori_pendaftaran', 'Masyarakat Umum');
-
-        // 1. Filter Pencarian Nama
-        if ($filterNamaPasien) {
-            $query->where('nama_pasien', 'like', '%' . $filterNamaPasien . '%');
-        }
-
-        // 2. Filter Status Berkas
-        if ($filterStatusBerkas) {
-            $query->where('status_berkas', $filterStatusBerkas);
-        }
-
-        // 3. Pengurutan Prioritas Kustom (WAJIB DENGAN STRING MENTAH/RAW)
-        // Urutan: 1. Menunggu, 2. Sudah Diverifikasi, 3. Ditolak
-        $query->orderByRaw("CASE 
-            WHEN status_berkas = 'Menunggu' THEN 1
-            WHEN status_berkas = 'Sudah Diverifikasi' THEN 2
-            WHEN status_berkas = 'Ditolak' THEN 3
-            ELSE 4 
-        END");
         
-        // Urutan kedua: Tgl Kunjungan terbaru (opsional, tetapi direkomendasikan)
-        $query->orderBy('tgl_kunjungan', 'desc'); 
+        // Query Dasar
+        $baseQuery = DataPasien::where('kategori_pendaftaran', 'Masyarakat Umum');
 
-        $dataPasien = $query->get();
+        // Filter Pencarian Nama
+        if ($filterNamaPasien) {
+            $baseQuery->where('nama_pasien', 'like', '%' . $filterNamaPasien . '%');
+        }
 
-        return view('admin.verifikasi-umum', compact('dataPasien', 'filterNamaPasien', 'filterStatusBerkas')); 
+        // Urutan default (terbaru di atas)
+        $baseQuery->orderBy('tgl_kunjungan', 'desc'); 
+
+        // 1. Data untuk Tab Listing (status_berkas = 'Menunggu')
+        $dataListing = (clone $baseQuery)
+                        ->where('status_berkas', 'Menunggu')
+                        ->get();
+
+        // 2. Data untuk Tab Reject (status_berkas = 'Ditolak')
+        $dataReject = (clone $baseQuery)
+                        ->where('status_berkas', 'Ditolak')
+                        // Di sini kita bisa menambahkan urutan prioritas khusus untuk Ditolak jika diperlukan
+                        ->get();
+        
+        // Data status 'Sudah Diverifikasi' tidak perlu diambil karena tidak ditampilkan di kedua tab.
+        // Variabel filterStatusBerkas dihapus karena tidak lagi digunakan.
+        
+        return view('admin.verifikasi-umum', compact('dataListing', 'dataReject', 'filterNamaPasien')); 
     }
 
     // ... (fungsi getPasienDetail dan updetMasyarakatUmum tidak berubah) ...

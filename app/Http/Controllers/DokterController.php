@@ -305,63 +305,82 @@ class DokterController extends Controller
 
     public function uploadVideos(Request $request, $id)
     {
+
         $request->validate([
-            'video_before' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/x-flv|max:25600',
-            'video_after' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/x-flv|max:25600',
+            'video_before' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/x-flv,image/jpeg,image/png,image/gif,image/heic,image/heif|max:25600',
+            'video_after' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/x-flv,image/jpeg,image/png,image/gif,image/heic,image/heif|max:25600',
         ], [
-            'video_before.max' => 'Ukuran Video Sebelum Pemeriksaan maksimal 25 MB.',
-            'video_after.max' => 'Ukuran Video Sesudah Pemeriksaan maksimal 25 MB.',
-            'video_before.mimetypes' => 'Format video tidak didukung. Harap unggah MP4 atau MOV.',
-            'video_after.mimetypes' => 'Format video tidak didukung. Harap unggah MP4 atau MOV.',
+            'video_before.max' => 'Ukuran File (Video/Foto) Sebelum Pemeriksaan maksimal 25 MB. (Pastikan foto tidak melebihi 2.5MB).',
+            'video_after.max' => 'Ukuran File (Video/Foto) Sesudah Pemeriksaan maksimal 25 MB. (Pastikan foto tidak melebihi 2.5MB).',
+            'video_before.mimetypes' => 'Format file tidak didukung. Harap unggah MP4/MOV atau JPEG/PNG/HEIC.',
+            'video_after.mimetypes' => 'Format file tidak didukung. Harap unggah MP4/MOV atau JPEG/PNG/HEIC.',
         ]);
 
         $pasien = DataPasien::findOrFail($id);
         $updateData = [];
-
-        // Path tujuan langsung ke public_html/public/storage
         $destination = public_path('storage');
+        $handleUpload = function ($file, $type) use ($pasien, $destination, &$updateData) {
+            // Ambil tipe MIME file yang diupload untuk penyesuaian ukuran
+            $mimeType = $file->getMimeType();
+            $fileSizeKB = $file->getSize() / 1024;
+            $isVideo = str_starts_with($mimeType, 'video/');
 
-        // === Video Before ===
+            // Lakukan validasi ukuran spesifik untuk foto di sini (karena validasi Laravel 'max' global)
+            if (!$isVideo && $fileSizeKB > 2500) { // Jika itu foto dan > 2.5MB (2500KB)
+                throw new \Illuminate\Validation\ValidationException(\Illuminate\Validation\ValidationFactory::make(
+                    [],
+                    [$type => 'max:2500'],
+                    [$type . '.max' => 'Ukuran file foto maksimal 2.5 MB.']
+                ), null, $type);
+            }
+
+            // Hapus file lama (foto/video)
+            $oldFile = $pasien->$type;
+            if ($oldFile) {
+                @unlink(public_path('storage/' . $oldFile));
+            }
+
+            $folderName = ($type == 'video_before') ? 'video_before' : 'video_after';
+            $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+
+            // Pindahkan file
+            $file->move($destination . '/' . $folderName, $filename);
+
+            $updateData[$type] = $folderName . '/' . $filename;
+        };
+
+
+        // === Video/Photo Before ===
         if ($request->hasFile('video_before')) {
-            if ($pasien->video_before) {
-                @unlink(public_path('storage/' . $pasien->video_before));
+            try {
+                $handleUpload($request->file('video_before'), 'video_before');
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                return back()->withInput()->withErrors($e->errors());
             }
-
-            $file = $request->file('video_before');
-            $filename = uniqid() . '.' . $file->getClientOriginalExtension();
-
-            // Pindahkan file ke folder public_html/public/storage/video_before
-            $file->move($destination . '/video_before', $filename);
-
-            $updateData['video_before'] = 'video_before/' . $filename;
         }
 
-        // === Video After ===
+        // === Video/Photo After ===
         if ($request->hasFile('video_after')) {
-            if ($pasien->video_after) {
-                @unlink(public_path('storage/' . $pasien->video_after));
+            try {
+                $handleUpload($request->file('video_after'), 'video_after');
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                return back()->withInput()->withErrors($e->errors());
             }
-
-            $file = $request->file('video_after');
-            $filename = uniqid() . '.' . $file->getClientOriginalExtension();
-
-            // Pindahkan file ke folder public_html/public/storage/video_after
-            $file->move($destination . '/video_after', $filename);
-
-            $updateData['video_after'] = 'video_after/' . $filename;
         }
+
 
         if (!empty($updateData)) {
             $pasien->update($updateData);
-            return back()->with('success', 'Video pasien berhasil diunggah/diperbarui.');
+            return back()->with('success', 'File (Video/Foto) pasien berhasil diunggah/diperbarui.');
         }
 
-        return back()->with('warning', 'Tidak ada file video yang diunggah atau diperbarui.');
+        return back()->with('warning', 'Tidak ada file yang diunggah atau diperbarui.');
     }
 
-
+    // Fungsi deleteVideo tidak perlu diubah karena sudah menggunakan Storage::disk('public')->delete.
     public function deleteVideo(Request $request, $id)
     {
+        // ... (kode fungsi deleteVideo tetap sama) ...
         $request->validate([
             'video_type' => 'required|in:video_before,video_after',
         ]);
@@ -379,10 +398,10 @@ class DokterController extends Controller
             $pasien->save();
 
             $videoLabel = ($videoType == 'video_before') ? 'Sebelum Pemeriksaan' : 'Sesudah Pemeriksaan';
-            return back()->with('success', "Video {$videoLabel} pasien berhasil dihapus.");
+            return back()->with('success', "File {$videoLabel} pasien berhasil dihapus.");
         }
 
-        return back()->with('warning', 'Video tidak ditemukan.');
+        return back()->with('warning', 'File tidak ditemukan.');
     }
 
     // ... di dalam DataPasienController
