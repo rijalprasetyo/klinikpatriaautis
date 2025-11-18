@@ -15,6 +15,7 @@
     --text-dark: #343a40;
     --bg-light: #f8f9fa;
     --border-light: #dee2e6;
+    --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
 .container-fluid h2 {
@@ -23,6 +24,7 @@
     padding-bottom: 10px;
 }
 
+/* Penyesuaian untuk Tabel di Desktop */
 .table-responsive {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
     border-radius: 0.5rem;
@@ -110,7 +112,87 @@
 }
 
 
+/* --- CSS KHUSUS MOBILE CARD VIEW --- */
+.card-pasien-mobile {
+    display: none; /* Default tersembunyi, hanya tampil di mobile */
+}
+.pasien-card {
+    border: 1px solid var(--border-light);
+    border-radius: 0.5rem;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 1rem;
+    overflow: hidden;
+    transition: transform 0.2s;
+}
+.pasien-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+.card-header-pasien {
+    background-color: var(--primary-blue);
+    color: white;
+    padding: 0.75rem 1rem;
+    font-size: 1.1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.card-body-pasien {
+    padding: 1rem;
+}
+.card-body-pasien p {
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+}
+.card-body-pasien strong {
+    color: var(--secondary-blue);
+    font-weight: 600;
+    display: inline-block;
+    min-width: 100px;
+}
+.card-footer-pasien {
+    padding: 0.75rem 1rem;
+    background-color: var(--bg-light);
+    border-top: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.action-buttons-mobile {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem; /* Jarak antar tombol aksi */
+    justify-content: flex-end;
+}
+/* Memastikan tombol aksi berukuran sama dan rapi di mobile */
+.action-buttons-mobile .btn-action-icon {
+    width: 38px; 
+    height: 38px;
+    padding: 0 !important;
+}
+
+/* LOGIKA RESPONSIVITAS */
+@media (min-width: 992px) {
+    .table-pasien-desktop {
+        display: block !important;
+    }
+    .card-pasien-mobile {
+        display: none !important;
+    }
+    .filter-group .col-md-3, .col-md-2 {
+        /* Menggunakan default di desktop */
+    }
+}
 @media (max-width: 991.98px) {
+    /* Sembunyikan Tabel di Mobile/Tablet */
+    .table-pasien-desktop {
+        display: none !important;
+    }
+    /* Tampilkan Card di Mobile/Tablet */
+    .card-pasien-mobile {
+        display: block !important;
+        margin-top: 20px;
+    }
     .filter-group .col-md-3, .col-md-2 {
         flex: 0 0 50%;
         max-width: 50%;
@@ -190,7 +272,7 @@
         </div>
     </form>
 
-    {{-- TABEL DATA --}}
+    {{-- TABEL DATA & CARD VIEW --}}
     <div class="table-responsive">
         {{-- Loading Overlay --}}
         <div class="loading-overlay" id="loading">
@@ -205,87 +287,162 @@
                 Tidak ada data pasien yang ditemukan sesuai filter yang dipilih.
             </div>
         @else
-            <table class="table table-striped table-hover align-middle">
-                <thead class="table-primary">
-                    <tr>
-                        <th>No</th>
-                        <th>Nama Pasien</th>
-                        <th>Kategori</th>
-                        <th>Layanan</th>
-                        <th>Tgl Kunjungan</th>
-                        <th>Dokter</th> {{-- Kolom Dokter Ditambahkan --}}
-                        <th>Status</th>
-                        <th style="width: 25%;">Aksi</th> {{-- Lebar aksi ditambah --}}
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($dataPasien as $index => $pasien)
+            {{-- TABEL UNTUK DESKTOP (display: block di desktop, none di mobile) --}}
+            <div class="table-pasien-desktop"> 
+                <table class="table table-striped table-hover align-middle">
+                    <thead class="table-primary">
                         <tr>
-                            <td class="fw-bold">{{ $index + 1 }}</td>
-                            <td>{{ $pasien->nama_pasien }}</td>
-                            <td>{{ $pasien->kategori_pendaftaran }}</td>
-                            <td>{{ $pasien->layanan_id ?? '-' }}</td>
-                            <td>{{ \Carbon\Carbon::parse($pasien->tgl_kunjungan)->isoFormat('D MMM YYYY') }}</td>
-                            <td>{{ $pasien->dokter->nama_dokter ?? '-' }}</td> {{-- Menampilkan nama Dokter --}}
-                            <td>
-                                @php
-                                    $badgeClass = 'bg-danger';
-                                    if ($pasien->status_pemeriksaan == 'Sedang Diperiksa') {
-                                        $badgeClass = 'bg-primary';
-                                    } elseif ($pasien->status_pemeriksaan == 'Selesai Diperiksa') {
-                                        $badgeClass = 'bg-success';
-                                    }
-                                @endphp
-                                <span class="badge {{ $badgeClass }}">
-                                    {{ $pasien->status_pemeriksaan }}
-                                </span>
-                            </td>
-                            <td>
-                                <div class="action-buttons">
-                                    {{-- Tombol Detail --}}
-                                    <button class="btn btn-sm btn-info text-white me-1 btn-detail btn-action-icon" 
+                            <th>No</th>
+                            <th>Nama Pasien</th>
+                            <th>Kategori</th>
+                            <th>Layanan</th>
+                            <th>Tgl Kunjungan</th>
+                            <th>Dokter</th> {{-- Kolom Dokter Ditambahkan --}}
+                            <th>Status</th>
+                            <th style="width: 25%;">Aksi</th> {{-- Lebar aksi ditambah --}}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($dataPasien as $index => $pasien)
+                            <tr>
+                                <td class="fw-bold">{{ $index + 1 }}</td>
+                                <td>{{ $pasien->nama_pasien }}</td>
+                                <td>{{ $pasien->kategori_pendaftaran }}</td>
+                                <td>{{ $pasien->layanan_id ?? '-' }}</td>
+                                <td>{{ \Carbon\Carbon::parse($pasien->tgl_kunjungan)->isoFormat('D MMM YYYY') }}</td>
+                                <td>{{ $pasien->dokter->nama_dokter ?? '-' }}</td> {{-- Menampilkan nama Dokter --}}
+                                <td>
+                                    @php
+                                        $badgeClass = 'bg-danger';
+                                        if ($pasien->status_pemeriksaan == 'Sedang Diperiksa') {
+                                            $badgeClass = 'bg-primary';
+                                        } elseif ($pasien->status_pemeriksaan == 'Selesai Diperiksa') {
+                                            $badgeClass = 'bg-success';
+                                        }
+                                    @endphp
+                                    <span class="badge {{ $badgeClass }}">
+                                        {{ $pasien->status_pemeriksaan }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        {{-- Tombol Detail --}}
+                                        <button class="btn btn-sm btn-info text-white me-1 btn-detail btn-action-icon" 
                                             data-id="{{ $pasien->id }}" 
                                             title="Detail Pasien">
-                                        <i class="fa-solid fa-file-invoice"></i>
-                                    </button>
-                                    
-                                    {{-- Tombol Ubah Status --}}
-                                    <button class="btn btn-sm btn-warning me-1 btn-status-pemeriksaan btn-action-icon" 
+                                            <i class="fa-solid fa-file-invoice"></i>
+                                        </button>
+                                        
+                                        {{-- Tombol Ubah Status --}}
+                                        <button class="btn btn-sm btn-warning me-1 btn-status-pemeriksaan btn-action-icon" 
                                             data-id="{{ $pasien->id }}" 
                                             data-current-status="{{ $pasien->status_pemeriksaan }}" 
                                             title="Ubah Status">
-                                        <i class="fa-solid fa-stethoscope"></i>
-                                    </button>
-                                    
-                                    {{-- Tombol Video/File (Diperbarui untuk File) --}}
-                                    <button class="btn btn-sm btn-primary me-1 btn-video btn-action-icon" 
+                                            <i class="fa-solid fa-stethoscope"></i>
+                                        </button>
+                                        
+                                        {{-- Tombol Video/File --}}
+                                        <button class="btn btn-sm btn-primary me-1 btn-video btn-action-icon" 
                                             data-id="{{ $pasien->id }}" 
                                             data-video-before="{{ $pasien->video_before ? asset('public/storage/' . $pasien->video_before) : '' }}" 
                                             data-video-after="{{ $pasien->video_after ? asset('public/storage/' . $pasien->video_after) : '' }}" 
                                             title="Unggah/Lihat File Pemeriksaan">
-                                        <i class="fa-solid fa-video"></i>
-                                    </button>
+                                            <i class="fa-solid fa-video"></i>
+                                        </button>
 
-                                    {{-- Tombol Catatan --}}
-                                    <button class="btn btn-sm btn-success me-1 btn-catatan btn-action-icon" 
+                                        {{-- Tombol Catatan --}}
+                                        <button class="btn btn-sm btn-success me-1 btn-catatan btn-action-icon" 
                                             data-id="{{ $pasien->id }}" 
                                             title="Catatan">
-                                        <i class="fa-solid fa-notes-medical"></i>
-                                    </button>
-                                    
-                                    {{-- Tombol Lihat Feedback (Baru) --}}
-                                    <button class="btn btn-sm btn-secondary btn-feedback-view btn-action-icon" 
+                                            <i class="fa-solid fa-notes-medical"></i>
+                                        </button>
+                                        
+                                        {{-- Tombol Lihat Feedback --}}
+                                        <button class="btn btn-sm btn-secondary btn-feedback-view btn-action-icon" 
                                             data-id="{{ $pasien->id }}" 
                                             data-feedback="{{ $pasien->feedback }}" 
                                             title="Lihat Feedback">
-                                        <i class="fa-solid fa-comment-dots"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
+                                            <i class="fa-solid fa-comment-dots"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            {{-- CARD VIEW UNTUK MOBILE (display: none di desktop, block di mobile) --}}
+            <div class="card-pasien-mobile">
+                @foreach ($dataPasien as $index => $pasien)
+                    <div class="pasien-card">
+                        <div class="card-header-pasien">
+                            <span>#{{ $index + 1 }} - {{ $pasien->nama_pasien }}</span>
+                            @php
+                                $badgeClass = 'bg-danger';
+                                if ($pasien->status_pemeriksaan == 'Sedang Diperiksa') {
+                                    $badgeClass = 'bg-primary';
+                                } elseif ($pasien->status_pemeriksaan == 'Selesai Diperiksa') {
+                                    $badgeClass = 'bg-success';
+                                }
+                            @endphp
+                            <span class="badge {{ $badgeClass }}">
+                                {{ $pasien->status_pemeriksaan }}
+                            </span>
+                        </div>
+                        <div class="card-body-pasien">
+                            <p><strong><i class="fa-solid fa-calendar-alt me-1"></i> Tgl Kunjungan:</strong> {{ \Carbon\Carbon::parse($pasien->tgl_kunjungan)->isoFormat('D MMM YYYY') }}</p>
+                            <p><strong><i class="fa-solid fa-user-md me-1"></i> Dokter:</strong> {{ $pasien->dokter->nama_dokter ?? '-' }}</p>
+                            <p><strong><i class="fa-solid fa-tags me-1"></i> Kategori:</strong> {{ $pasien->kategori_pendaftaran }}</p>
+                            <p><strong><i class="fa-solid fa-procedures me-1"></i> Layanan:</strong> {{ $pasien->layanan_id ?? '-' }}</p>
+                        </div>
+                        <div class="card-footer-pasien">
+                            <span class="text-muted small">Aksi:</span>
+                            <div class="action-buttons-mobile">
+                                {{-- Tombol Detail --}}
+                                <button class="btn btn-sm btn-info text-white btn-detail btn-action-icon" 
+                                    data-id="{{ $pasien->id }}" 
+                                    title="Detail">
+                                    <i class="fa-solid fa-file-invoice"></i>
+                                </button>
+                                
+                                {{-- Tombol Ubah Status --}}
+                                <button class="btn btn-sm btn-warning btn-status-pemeriksaan btn-action-icon" 
+                                    data-id="{{ $pasien->id }}" 
+                                    data-current-status="{{ $pasien->status_pemeriksaan }}" 
+                                    title="Status">
+                                    <i class="fa-solid fa-stethoscope"></i>
+                                </button>
+                                
+                                {{-- Tombol Video/File --}}
+                                <button class="btn btn-sm btn-primary btn-video btn-action-icon" 
+                                    data-id="{{ $pasien->id }}" 
+                                    data-video-before="{{ $pasien->video_before ? asset('public/storage/' . $pasien->video_before) : '' }}" 
+                                    data-video-after="{{ $pasien->video_after ? asset('public/storage/' . $pasien->video_after) : '' }}" 
+                                    title="File">
+                                    <i class="fa-solid fa-video"></i>
+                                </button>
+
+                                {{-- Tombol Catatan --}}
+                                <button class="btn btn-sm btn-success btn-catatan btn-action-icon" 
+                                    data-id="{{ $pasien->id }}" 
+                                    title="Catatan">
+                                    <i class="fa-solid fa-notes-medical"></i>
+                                </button>
+                                
+                                {{-- Tombol Lihat Feedback --}}
+                                <button class="btn btn-sm btn-secondary btn-feedback-view btn-action-icon" 
+                                    data-id="{{ $pasien->id }}" 
+                                    data-feedback="{{ $pasien->feedback }}" 
+                                    title="Feedback">
+                                    <i class="fa-solid fa-comment-dots"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+            {{-- END CARD VIEW MOBILE --}}
         @endif
     </div>
 </div>
@@ -596,7 +753,7 @@
 <script>
     function showLoading() {
         document.getElementById('loading').style.display = 'flex';
-        const table = document.querySelector('.table-responsive table');
+        const table = document.querySelector('.table-pasien-desktop table');
         if (table) table.style.opacity = '0.5';
     }
 
@@ -756,7 +913,7 @@
                 currentPasienId = this.dataset.id;
                 const pasienId = currentPasienId;
                 const filePathBefore = this.dataset.videoBefore; // Sekarang bisa berupa video atau foto
-                const filePathAfter = this.dataset.videoAfter;   // Sekarang bisa berupa video atau foto
+                const filePathAfter = this.dataset.videoAfter;  // Sekarang bisa berupa video atau foto
 
                 const playerBefore = document.getElementById('video-before-player');
                 const imageBefore = document.getElementById('image-before-player'); // Elemen baru
@@ -891,7 +1048,17 @@
         // ===== MODAL FEEDBACK (Functionalitas tidak berubah) =====
         document.querySelectorAll('.btn-feedback-view').forEach(button => {
             button.addEventListener('click', function() {
-                const pasienName = this.closest('tr').querySelector('td:nth-child(2)').textContent;
+                // Ambil nama pasien dari card/row, di mobile card, di desktop row
+                const card = this.closest('.pasien-card');
+                let pasienName = 'N/A';
+                if (card) {
+                    // Ambil dari header card mobile
+                    pasienName = card.querySelector('.card-header-pasien span:first-child').textContent.split('- ')[1].trim().replace(/\*\*/g, '');
+                } else {
+                    // Ambil dari row tabel desktop
+                    pasienName = this.closest('tr').querySelector('td:nth-child(2)').textContent;
+                }
+                
                 const feedback = this.dataset.feedback;
 
                 document.getElementById('feedback-pasien-nama').textContent = pasienName;

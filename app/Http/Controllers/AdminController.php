@@ -530,26 +530,24 @@ class AdminController extends Controller
         $today = Carbon::today()->toDateString();
         
         // Pastikan kita memilih SEMUA KOLOM dari model DataPasien untuk Union
-        // Gunakan select('*') atau daftar kolom eksplisit (e.g., ['data_pasien.*'])
         $selectColumns = ['data_pasien.*'];
 
-        // --- QUERY 1: PASIEN YANG SUDAH DIVERIFIKASI (BASE RIWAYAT) ---
-        // Tambahkan filter request ke query ini (jika ada)
+        // --- QUERY 1: PASIEN YANG SUDAH DIVERIFIKASI (BASE RIWAYAT AKTIF) ---
+        // Pasien yang status berkasnya OK (Sudah Diverifikasi). 
         $queryVerified = DataPasien::select($selectColumns)
-                            ->with(['dokter']) // Relasi dokter HANYA bisa di-load di kueri utama Eloquent
-                            ->where('status_berkas', 'Sudah Diverifikasi');
+            ->where('status_berkas', 'Sudah Diverifikasi');
         
-        // --- QUERY 2: PASIEN YANG BELUM DIVERIFIKASI TAPI SUDAH EXPIRED (JADWAL LEWAT) ---
-        // Gunakan clone dari query 1 untuk mewarisi relasi dokter
-        $queryExpired = (clone $queryVerified)
-                            ->select($selectColumns) // Pastikan kolom yang sama dipilih
-                            ->where('status_berkas', '!=', 'Sudah Diverifikasi')
-                            ->whereDate('tgl_kunjungan', '<=', $today); 
+        // --- QUERY 2: PASIEN YANG JADWALNYA SUDAH EXPIRED/TERLEWAT ---
+        // Pasien yang belum diurus berkasnya TAPI tanggal kunjungannya <= hari ini.
+        $queryExpired = DataPasien::select($selectColumns) 
+            // Status berkas yang HANYA 'Belum Diverifikasi'
+            ->where('status_berkas', 'Belum Diverifikasi')
+            // Tanggal kunjungan <= hari ini (Jadwal Terlewat)
+            ->whereDate('tgl_kunjungan', '<=', $today); 
 
         // --- TERAPKAN FILTER PADA KEDUA QUERY SEBELUM UNION ---
-        // Terapkan semua filter yang sama pada kedua kueri dasar sebelum menggabungkan.
-        
         $commonFilters = function ($q) use ($request) {
+            
             // Filter Kategori Pendaftaran
             if ($request->filled('kategori_pendaftaran')) {
                 $q->where('kategori_pendaftaran', $request->kategori_pendaftaran);
@@ -563,6 +561,19 @@ class AdminController extends Controller
             // Filter Tanggal Akhir
             if ($request->filled('end_date')) {
                 $q->whereDate('tgl_kunjungan', '<=', $request->end_date);
+            }
+
+            // Filter Status Berkas (BARU DITAMBAHKAN & SPESIFIK)
+            // HANYA memfilter jika nilainya adalah 'Sudah Diverifikasi' atau 'Belum Diverifikasi'.
+            // Ini memastikan filter tidak mengganggu status lain yang mungkin ada (Menunggu/Ditolak) 
+            // yang secara default tidak masuk di query union, kecuali jika status tsb terlewat.
+            if ($request->filled('status_berkas')) {
+                $validStatuses = ['Sudah Diverifikasi', 'Belum Diverifikasi'];
+                $filterStatus = $request->status_berkas;
+
+                if (in_array($filterStatus, $validStatuses)) {
+                    $q->where('status_berkas', $filterStatus);
+                }
             }
 
             // Filter Status Pemeriksaan
@@ -579,28 +590,31 @@ class AdminController extends Controller
         $queryVerified->where($commonFilters);
         $queryExpired->where($commonFilters);
         
-        // --- GABUNGKAN MENGGUNAKAN UNION (UNION HANYA MENGAMBIL KOLOM DARI QUERY PERTAMA) ---
-        // Catatan: Union di Eloquent hanya mengizinkan WITH pada kueri pertama.
-        // Untungnya, kedua query kita berasal dari model yang sama.
+        // --- GABUNGKAN MENGGUNAKAN UNION ---
         $query = $queryVerified->union($queryExpired);
 
         // Dapatkan ID pasien hasil union
-        $pasienIds = $query->pluck('id')->unique()->toArray();
+        $pasienIds = $query->orderBy('tgl_kunjungan', 'desc')
+            ->orderBy('id', 'asc')
+            ->pluck('id')
+            ->unique()
+            ->toArray();
 
         // --- AMBIL DATA AKHIR DENGAN RELASI MENGGUNAKAN ID HASIL UNION ---
-        $dataPasien = DataPasien::with('dokter')
-                                ->whereIn('id', $pasienIds)
-                                ->orderBy('tgl_kunjungan', 'desc')
-                                ->get();
+        $dataPasien = DataPasien::with('dokter', 'waktu') // Menambahkan relasi waktu
+            ->whereIn('id', $pasienIds)
+            ->orderBy('tgl_kunjungan', 'desc')
+            ->orderBy('waktu_id', 'asc') // Tambahkan order by waktu untuk konsistensi
+            ->get();
         
         // 2. Ambil daftar kategori unik
         $kategoriList = DataPasien::select('kategori_pendaftaran')
-                                ->distinct()
-                                ->pluck('kategori_pendaftaran')
-                                ->filter()
-                                ->sort()
-                                ->values()
-                                ->toArray();
+            ->distinct()
+            ->pluck('kategori_pendaftaran')
+            ->filter()
+            ->sort()
+            ->values()
+            ->toArray();
 
         // 3. Update data yang di-pass ke view
         return view('admin.riwayat_pasien', [
@@ -610,6 +624,7 @@ class AdminController extends Controller
             'filterStatusPemeriksaan' => $request->status_pemeriksaan,
             'filterNamaPasien' => $request->nama_pasien,
             'filterKategori' => $request->kategori_pendaftaran,
+            'filterStatusBerkas' => $request->status_berkas, // BARU
             'kategoriList' => $kategoriList,
         ]);
     }
@@ -749,7 +764,27 @@ class AdminController extends Controller
         }
     }
 
-    
+    public function updateCheckboxStatus(Request $request)
+    {
+        // Ambil daftar ID yang dicentang
+        $checkedIds = $request->input('checked', []); 
+
+        // Set semua ke 0 terlebih dahulu
+        DataPasien::where('kategori_pendaftaran', 'Masyarakat Umum')
+            ->update(['check' => 0]);
+
+        // Lalu set yang dicentang menjadi 1
+        if (!empty($checkedIds)) {
+            DataPasien::whereIn('id', $checkedIds)
+                ->update(['check' => 1]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status checkbox berhasil diperbarui'
+        ]);
+    }
+
     
 
 

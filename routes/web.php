@@ -70,6 +70,8 @@ Route::middleware('auth:admin')->group(function () {
     Route::put('/admin/berkas-umum/{id}/update', [AdminController::class, 'updetMasyarakatUmum'])->name('admin.berkas.update-masyarakat-umum');
     Route::get('/admin/verifikasi-umum', [AdminController::class, 'riwayatPasienMasyarakatUmum'])->name('admin.verifikasi-umum');
     Route::put('/admin/berkas-umum/massal-update', [AdminController::class, 'updetMassal'])->name('admin.berkas.update-massal');
+    Route::post('/admin/update-checkbox', [AdminController::class, 'updateCheckboxStatus'])->name('admin.update-checkbox');
+
 });
 
 // DOKTER

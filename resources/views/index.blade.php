@@ -682,13 +682,13 @@
                         <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="4000">
                             <div class="carousel-inner">
                                 <div class="carousel-item active">
-                                    <img src="{{ asset('assets/foto1.jpg') }}" class="d-block w-100" alt="Fisioterapi">
+                                    <img src="https://res.cloudinary.com/djhikwue3/image/upload/v1763472033/IMG-20251117-WA0022_w4mnet.jpg" class="d-block w-100" alt="Fisioterapi">
                                 </div>
                                 <div class="carousel-item">
-                                    <img src="{{ asset('assets/foto2.jpg') }}" class="d-block w-100" alt="Rehabilitasi">
+                                    <img src="https://res.cloudinary.com/djhikwue3/image/upload/v1763472030/IMG-20251117-WA0020_edpihj.jpg" class="d-block w-100" alt="Rehabilitasi">
                                 </div>
                                 <div class="carousel-item">
-                                    <img src="{{ asset('assets/foto3.jpg') }}" class="d-block w-100" alt="Klinik">
+                                    <img src="https://res.cloudinary.com/djhikwue3/image/upload/v1763472028/IMG-20251117-WA0019_v1jhck.jpg" class="d-block w-100" alt="Klinik">
                                 </div>
                             </div>
                             <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
@@ -889,10 +889,8 @@
                 <div class="col-lg-3 col-md-4">
                     <h5 class="footer-title">Ikuti Kami</h5>
                     <div class="social-icons">
-                        <a href="#"><i class="fab fa-facebook-f"></i></a>
-                        <a href="https://www.instagram.com/malangautismcenter.ofc?utm_source=ig_web_button_share_sheet&igsh=Y2poeW5pcjFmMXI4"><i class="fab fa-instagram"></i></a>
-                        <a href="#"><i class="fab fa-whatsapp"></i></a>
-                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="https://www.instagram.com/fisioterapi_patria/"><i class="fab fa-instagram"></i></a>
+                        <a href="https://wa.me/6289681870970"><i class="fab fa-whatsapp"></i></a>
                     </div>
                 </div>
             </div>

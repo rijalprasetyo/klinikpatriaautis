@@ -7,7 +7,6 @@
     <h2 class="mb-4 fw-bold"><i class="fa-solid fa-chart-line me-2"></i> Dashboard Dokter</h2>
 
     <div class="row g-4">
-        <!-- Total Pasien Hari Ini -->
         <div class="col-md-4">
             <div class="card border-0 shadow-sm p-3 text-center bg-primary text-white rounded-4">
                 <div class="card-body">
@@ -18,7 +17,6 @@
             </div>
         </div>
 
-        <!-- Belum Diperiksa -->
         <div class="col-md-4">
             <div class="card border-0 shadow-sm p-3 text-center bg-warning text-dark rounded-4">
                 <div class="card-body">
@@ -29,7 +27,6 @@
             </div>
         </div>
 
-        <!-- Selesai Diperiksa -->
         <div class="col-md-4">
             <div class="card border-0 shadow-sm p-3 text-center bg-success text-white rounded-4">
                 <div class="card-body">
@@ -40,5 +37,19 @@
             </div>
         </div>
     </div>
-</div>
+    
+    <hr class="my-4">
+
+    <div class="alert alert-danger p-3 shadow-sm rounded-4" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="fa-solid fa-triangle-exclamation fa-2x me-3 text-danger flex-shrink-0"></i>
+            <div>
+                <h5 class="alert-heading fw-bold mb-1 text-danger">PERHATIAN PENTING</h5>
+                <p class="mb-0 small text-dark">
+                    Pastikan semua pasien sudah diperiksa, jangan sampai ada yang terlewatkan yang melebihi tanggal kunjungannya, selalu cek Menu Riwayat Pasien.
+                </p>
+            </div>
+        </div>
+    </div>
+    </div>
 @endsection

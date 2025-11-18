@@ -16,6 +16,7 @@
         --text-dark: #343a40;
         --bg-light: #f8f9fa;
         --border-light: #dee2e6;
+        --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
     }
 
     /* Header & Container */
@@ -93,7 +94,7 @@
         align-items: center;
         justify-content: center;
     }
-
+    
     /* Modal Styling */
     .modal-content {
         border-radius: 1rem;
@@ -116,7 +117,6 @@
         align-items: center;
         justify-content: center;
         flex-direction: column;
-        /* Padding untuk memberi ruang pada kontrol Plyr */
         padding: 10px; 
     }
 
@@ -142,50 +142,22 @@
     }
 
     /* ============================================ */
-    /* RESPONSIVE MOBILE STYLES */
+    /* RESPONSIVE MOBILE CARD STYLES */
     /* ============================================ */
     
-    /* Mobile Portrait (max-width: 575px) */
-    @media (max-width: 575.98px) {
-        .modal-body table th,
-        .modal-body table td {
-            padding: 0.4rem;
-            display: block;
-            width: 100% !important;
-        }
-
-        .video-container {
-            min-height: 200px;
-        }
-
-        .video-container video,
-        .video-container img {
-            max-height: 200px !important;
-        }
-
-        /* Hide Desktop Table on Mobile, Show Cards */
-        .table-responsive:not(.no-mobile-cards) table {
-            display: none;
-        }
-
-        .mobile-cards-container {
-            display: block;
-        }
+    /* Container yang hanya muncul di mobile */
+    .mobile-cards-container {
+        display: none;
+        margin-top: 1rem;
     }
     
-    @media (min-width: 768px) {
-        .mobile-cards-container {
-            display: none;
-        }
-    }
-    /* Mobile Card Styles (Tambahan dari kode sebelumnya) */
     .mobile-card {
         background: white;
         border: 1px solid var(--border-light);
         border-radius: 0.5rem;
         padding: 1rem;
         margin-bottom: 1rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: var(--shadow-sm);
     }
 
     .mobile-card-header {
@@ -207,21 +179,77 @@
         display: flex;
         justify-content: space-between;
         margin-bottom: 0.5rem;
+        font-size: 0.95rem;
     }
 
     .mobile-card-label {
         font-weight: 600;
         color: var(--text-dark);
+        min-width: 120px; /* Lebar minimum untuk label agar rapi */
     }
     
     .mobile-card-actions {
         display: flex;
+        flex-wrap: wrap; /* Biar tombol bisa pindah baris jika layar sempit */
         gap: 0.5rem;
         margin-top: 1rem;
         padding-top: 0.75rem;
         border-top: 1px solid var(--border-light);
     }
+    
+    /* Atur lebar tombol aksi di mobile card */
+    .mobile-card-actions .btn {
+        flex: 1 1 auto; /* Memungkinkan tombol mengisi ruang dan mengatur ulang */
+        font-size: 0.85rem;
+        padding: 0.4rem 0.6rem;
+    }
+    
+    /* MEDIA QUERIES */
+    /* Tampilkan Mobile Card dan sembunyikan Table di layar sempit (Tablet/Mobile) */
+    @media (max-width: 767.98px) {
+        .table-responsive table {
+            display: none;
+        }
+        .mobile-cards-container {
+            display: block;
+        }
+        
+        .filter-group .col-md-4 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+        
+        /* Penyesuaian Modal untuk layar sangat kecil */
+        .modal-body table th,
+        .modal-body table td {
+            padding: 0.4rem;
+            display: block;
+            width: 100% !important;
+        }
 
+        .video-container {
+            min-height: 200px;
+        }
+
+        .video-container video,
+        .video-container img {
+            max-height: 200px !important;
+        }
+        
+        .mobile-card-actions {
+            justify-content: space-between;
+        }
+        .mobile-card-actions .btn {
+            flex: 1 1 45%; /* Dua tombol per baris */
+        }
+    }
+    
+    /* Sembunyikan Mobile Card di Desktop/Layar Besar */
+    @media (min-width: 768px) {
+        .mobile-cards-container {
+            display: none;
+        }
+    }
 </style>
 
 <div class="container-fluid">
@@ -245,13 +273,22 @@
 
             {{-- Alert Notifikasi --}}
             @if(session('success'))
-                <div class="alert alert-success">{{ session('success') }}</div>
+                <div class="alert alert-success alert-dismissible fade show">
+                    {{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
             @endif
             @if(session('warning'))
-                <div class="alert alert-warning">{{ session('warning') }}</div>
+                <div class="alert alert-warning alert-dismissible fade show">
+                    {{ session('warning') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
             @endif
             @if ($errors->any())
-                <div class="alert alert-danger">Mohon periksa unggahan file Anda.</div>
+                <div class="alert alert-danger alert-dismissible fade show">
+                    Mohon periksa unggahan file Anda.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
             @endif
 
         </div>
@@ -266,11 +303,11 @@
     @endphp
 
     @foreach ($dataTabs as $key => $tab)
-        <div id="pasien-{{ $key }}">
+        <div id="pasien-{{ $key }}" style="{{ $key !== 'today' ? 'display: none;' : '' }}">
             <h4 class="mb-3 mt-3 text-{{ $tab['color'] }}">{{ $tab['label'] }}</h4>
             
             {{-- FILTER --}}
-            <form method="GET" action="{{ route('dokter.data-pasien') }}" id="filter-form-{{ $key }}" class="filter-group row mb-3 align-items-end">
+            <form method="GET" action="{{ route('dokter.data-pasien') }}" id="filter-form-{{ $key }}" class="filter-group row mb-3 align-items-end" style="{{ $key === 'today' ? 'display: flex;' : 'display: none;' }}">
                 <input type="hidden" name="tab" value="{{ $key }}">
                 
                 @if ($key == 'upcoming')
@@ -302,11 +339,11 @@
                     <input type="text" name="nama_pasien" id="filter_nama_pasien_{{ $key }}" class="form-control" placeholder="Ketik nama..." value="{{ $currentFilterNamaPasien }}">
                 </div>
                 
-                <div class="col-12 col-md-4 mb-2">
-                    <button type="submit" class="btn btn-primary w-100 mb-2" onclick="showLoading('{{ $key }}')">
+                <div class="col-12 col-md-4 mb-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-fill">
                         <i class="fa-solid fa-filter"></i> Filter
                     </button>
-                    <a href="{{ route('dokter.data-pasien', ['tab' => $key]) }}" class="btn btn-outline-secondary w-100">Reset</a>
+                    <a href="{{ route('dokter.data-pasien', ['tab' => $key]) }}" class="btn btn-outline-secondary flex-fill">Reset</a>
                 </div>
             </form>
 
@@ -378,6 +415,7 @@
                                             <button class="btn btn-sm btn-success btn-catatan btn-action-icon" data-id="{{ $pasien->id }}" title="Catatan">
                                                 <i class="fa-solid fa-notes-medical"></i>
                                             </button>
+                                            {{-- Tombol Feedback dihilangkan dari tabel desktop --}}
                                         </div>
                                     </td>
                                 </tr>
@@ -385,12 +423,12 @@
                         </tbody>
                     </table>
 
-                    {{-- Mobile Card View --}}
+                    {{-- Mobile Card View (BARU) --}}
                     <div class="mobile-cards-container">
                         @foreach ($tab['data'] as $pasien)
                             <div class="mobile-card">
                                 <div class="mobile-card-header">
-                                    <div class="mobile-card-antrian">{{ $pasien->nomor_antrian }}</div>
+                                    <div class="mobile-card-antrian">Antrian: {{ $pasien->nomor_antrian }}</div>
                                     @php
                                         $badgeClass = 'bg-danger';
                                         if ($pasien->status_pemeriksaan == 'Sedang Diperiksa') {
@@ -403,42 +441,43 @@
                                 </div>
                                 <div class="mobile-card-body">
                                     <div class="mobile-card-row">
-                                        <span class="mobile-card-label">Nama:</span>
-                                        <span class="mobile-card-value">{{ $pasien->nama_pasien }}</span>
+                                        <span class="mobile-card-label"><i class="fa-solid fa-user me-1"></i> Nama Pasien:</span>
+                                        <span class="mobile-card-value text-end fw-bold">{{ $pasien->nama_pasien }}</span>
                                     </div>
                                     @if ($key == 'upcoming')
                                     <div class="mobile-card-row">
-                                        <span class="mobile-card-label">Tanggal:</span>
-                                        <span class="mobile-card-value">{{ \Carbon\Carbon::parse($pasien->tgl_kunjungan)->isoFormat('D MMM YYYY') }}</span>
+                                        <span class="mobile-card-label"><i class="fa-solid fa-calendar-alt me-1"></i> Tanggal Kunjungan:</span>
+                                        <span class="mobile-card-value text-end">{{ \Carbon\Carbon::parse($pasien->tgl_kunjungan)->isoFormat('D MMM YYYY') }}</span>
                                     </div>
                                     @endif
                                     <div class="mobile-card-row">
-                                        <span class="mobile-card-label">Layanan:</span>
-                                        <span class="mobile-card-value">{{ $pasien->layanan_id ?? '-' }}</span>
+                                        <span class="mobile-card-label"><i class="fa-solid fa-clock me-1"></i> Waktu:</span>
+                                        <span class="mobile-card-value text-end">{{ $pasien->waktu->jam_mulai ?? '-' }} - {{ $pasien->waktu->jam_selesai ?? '-' }}</span>
                                     </div>
                                     <div class="mobile-card-row">
-                                        <span class="mobile-card-label">Waktu:</span>
-                                        <span class="mobile-card-value">{{ $pasien->waktu->jam_mulai ?? '-' }} - {{ $pasien->waktu->jam_selesai ?? '-' }}</span>
+                                        <span class="mobile-card-label"><i class="fa-solid fa-hand-holding-medical me-1"></i> Layanan:</span>
+                                        <span class="mobile-card-value text-end">{{ $pasien->layanan_id ?? '-' }}</span>
                                     </div>
                                     <div class="mobile-card-row">
-                                        <span class="mobile-card-label">Dokter:</span>
-                                        <span class="mobile-card-value">{{ $pasien->dokter->nama_dokter ?? '-' }}</span>
+                                        <span class="mobile-card-label"><i class="fa-solid fa-user-md me-1"></i> Dokter PJ:</span>
+                                        <span class="mobile-card-value text-end">{{ $pasien->dokter->nama_dokter ?? '-' }}</span>
                                     </div>
                                 </div>
                                 <div class="mobile-card-actions">
-                                    <button class="btn btn-info text-white btn-detail" data-id="{{ $pasien->id }}">
+                                    <button class="btn btn-info text-white btn-detail" data-id="{{ $pasien->id }}" title="Detail">
                                         <i class="fa-solid fa-file-invoice"></i> Detail
                                     </button>
-                                    <button class="btn btn-warning btn-status-pemeriksaan" data-id="{{ $pasien->id }}" data-current-status="{{ $pasien->status_pemeriksaan }}">
+                                    <button class="btn btn-warning btn-status-pemeriksaan" data-id="{{ $pasien->id }}" data-current-status="{{ $pasien->status_pemeriksaan }}" title="Ubah Status">
                                         <i class="fa-solid fa-stethoscope"></i> Status
                                     </button>
                                     <button class="btn btn-primary btn-video" 
                                         data-id="{{ $pasien->id }}" 
                                         data-video-before="{{ $pasien->video_before ? asset('public/storage/' . $pasien->video_before) : '' }}" 
-                                        data-video-after="{{ $pasien->video_after ? asset('public/storage/' . $pasien->video_after) : '' }}">
+                                        data-video-after="{{ $pasien->video_after ? asset('public/storage/' . $pasien->video_after) : '' }}"
+                                        title="File Pemeriksaan">
                                         <i class="fa-solid fa-video"></i> File
                                     </button>
-                                    <button class="btn btn-success btn-catatan" data-id="{{ $pasien->id }}">
+                                    <button class="btn btn-success btn-catatan" data-id="{{ $pasien->id }}" title="Catatan">
                                         <i class="fa-solid fa-notes-medical"></i> Catatan
                                     </button>
                                 </div>
@@ -452,7 +491,7 @@
 
 </div>
 
-{{-- MODALS --}}
+{{-- MODALS (Tidak Berubah Fungsionalitas) --}}
 {{-- Modal 1: Detail Pasien --}}
 <div class="modal fade" id="detailPasienModal" tabindex="-1" aria-labelledby="detailPasienModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -535,7 +574,7 @@
     </div>
 </div>
 
-{{-- Modal 3: Unggah dan Lihat Video/Foto (Diperbarui) --}}
+{{-- Modal 3: Unggah dan Lihat Video/Foto --}}
 <div class="modal fade" id="videoModal" tabindex="-1" aria-labelledby="videoModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
@@ -707,7 +746,7 @@
     </div>
 </div>
 
-{{-- Modal 5: Lihat Feedback (Tetap Disertakan jika diperlukan di masa depan, meskipun tombol aksi dihapus) --}}
+{{-- Modal 5: Lihat Feedback (Tetap Disertakan) --}}
 <div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
@@ -777,7 +816,6 @@
         const videoModal = new bootstrap.Modal(document.getElementById('videoModal'));
         const catatanModal = new bootstrap.Modal(document.getElementById('catatanModal'));
         const confirmDeleteModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
-        // const feedbackModal = new bootstrap.Modal(document.getElementById('feedbackModal')); // Modal Feedback tidak dipakai di sini
         
         const formUpdateCatatan = document.getElementById('form-update-catatan');
         const formDeleteVideo = document.getElementById('form-delete-video');
@@ -796,6 +834,7 @@
 
         const dokterLoginNama = document.getElementById('dokter-login-nama').value; 
         
+        // Hide initial loadings
         document.getElementById('loading-today').style.display = 'none';
         document.getElementById('loading-upcoming').style.display = 'none';
         
@@ -803,26 +842,30 @@
         const urlParams = new URLSearchParams(window.location.search);
         let activeTab = urlParams.get('tab') || 'today';
 
-        if (activeTab === 'upcoming') {
-            document.getElementById('pasien-today').style.display = 'none';
-            document.getElementById('pasien-upcoming').style.display = 'block';
-            document.getElementById('btn-today').classList.remove('active', 'btn-primary');
-            document.getElementById('btn-today').classList.add('btn-secondary');
-            document.getElementById('btn-upcoming').classList.add('active', 'btn-primary');
-            document.getElementById('btn-upcoming').classList.remove('btn-secondary');
-        } else {
-            document.getElementById('pasien-today').style.display = 'block';
-            document.getElementById('pasien-upcoming').style.display = 'none';
+        function applyTabVisibility(key, isActive) {
+            document.getElementById(`pasien-${key}`).style.display = isActive ? 'block' : 'none';
+            document.getElementById(`btn-${key}`).classList.toggle('active', isActive);
+            document.getElementById(`btn-${key}`).classList.toggle('btn-primary', isActive);
+            document.getElementById(`btn-${key}`).classList.toggle('btn-secondary', !isActive);
+            const filterForm = document.getElementById(`filter-form-${key}`);
+            if (filterForm) {
+                filterForm.style.display = isActive ? 'flex' : 'none';
+            }
         }
 
-        document.getElementById('filter-form-today').style.display = activeTab === 'today' ? 'flex' : 'none';
-        document.getElementById('filter-form-upcoming').style.display = activeTab === 'upcoming' ? 'flex' : 'none';
+        applyTabVisibility('today', activeTab === 'today');
+        applyTabVisibility('upcoming', activeTab === 'upcoming');
 
         function updateTabs(activeKey) {
             const currentParams = new URLSearchParams(window.location.search);
-            currentParams.delete('tab');
+            currentParams.set('tab', activeKey);
+            // Hapus filter yang tidak relevan (kecuali nama pasien dan status) saat pindah tab
+            if (activeKey === 'today') {
+                 currentParams.delete('date');
+            }
             const queryString = currentParams.toString();
-            const newUrl = `{{ route('dokter.data-pasien') }}?tab=${activeKey}` + (queryString ? `&${queryString}` : '');
+            const newUrl = `{{ route('dokter.data-pasien') }}?${queryString}`;
+            
             showLoading(activeKey);
             window.location.href = newUrl;
         }
@@ -830,23 +873,18 @@
         document.getElementById('btn-today').addEventListener('click', () => updateTabs('today'));
         document.getElementById('btn-upcoming').addEventListener('click', () => updateTabs('upcoming'));
 
-        document.querySelectorAll('.filter-group select').forEach(select => {
-            select.addEventListener('change', function() {
-                showLoading(this.closest('.filter-group').querySelector('input[name="tab"]').value);
-                this.closest('form').submit();
-            });
-        });
-        
         document.querySelectorAll('.filter-group button[type="submit"]').forEach(button => {
             button.addEventListener('click', function(e) {
                 e.preventDefault();
-                showLoading(this.closest('.filter-group').querySelector('input[name="tab"]').value);
-                this.closest('form').submit();
+                const form = this.closest('form');
+                const activeKey = form.querySelector('input[name="tab"]').value;
+                showLoading(activeKey);
+                form.submit();
             });
         });
         // --- END LOGIC TAB & FILTER ---
 
-        // Modal Detail Pasien
+        // Modal Detail Pasien (Tidak Berubah)
         document.querySelectorAll('.btn-detail').forEach(button => {
             button.addEventListener('click', function() {
                 const pasienId = this.dataset.id;
@@ -893,7 +931,7 @@
             });
         });
 
-        // Modal Status Pemeriksaan
+        // Modal Status Pemeriksaan (Tidak Berubah)
         document.querySelectorAll('.btn-status-pemeriksaan').forEach(button => {
             button.addEventListener('click', function() {
                 const pasienId = this.dataset.id;
@@ -932,7 +970,7 @@
             });
         });
 
-        // Modal Video/Foto
+        // Modal Video/Foto (Hanya fungsionalitas Plyr yang ditambahkan, logika tampilan file tetap sama)
         document.querySelectorAll('.btn-video').forEach(button => {
             button.addEventListener('click', function() {
                 destroyPlyrInstances();
@@ -952,6 +990,7 @@
                 const notFoundAfter = document.getElementById('file-after-not-found');
                 const btnDeleteAfter = document.getElementById('btn-delete-after');
                 
+                // Reset input files & loading
                 document.getElementById('video_before_file').value = '';
                 document.getElementById('video_after_file').value = '';
                 document.getElementById('upload-loading-before').style.display = 'none';

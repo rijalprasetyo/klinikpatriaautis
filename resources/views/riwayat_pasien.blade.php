@@ -11,13 +11,15 @@
         --bg-light: #f8f9fa;
         --border-light: #dee2e6;
         --warning-yellow: #ffc107;
+        --reject-red: #dc3545; /* Merah untuk status Ditolak */
+        --success-green: #28aa75;
     }
 
     .media-player {
-         width: 100%;
-         max-height: 300px;
-         object-fit: contain; /* Penting untuk gambar agar tidak terdistorsi */
-         display: none;
+        width: 100%;
+        max-height: 300px;
+        object-fit: contain; /* Penting untuk gambar agar tidak terdistorsi */
+        display: none;
     }
 
     .container-fluid h2 {
@@ -433,6 +435,24 @@
                 </thead>
                 <tbody>
                     @foreach ($dataPasien as $index => $pasien)
+                        @php
+                            $isMasyarakatUmum = strtolower($pasien->kategori_pendaftaran) == 'masyarakat umum';
+                            $statusDisplay = $pasien->status_pemeriksaan;
+                            $badgeClass = 'bg-success';
+
+                            if ($isMasyarakatUmum) {
+                                if ($pasien->status_berkas == 'Sudah Diverifikasi') {
+                                    $statusDisplay = $pasien->status_pemeriksaan; // Selesai Diperiksa
+                                    $badgeClass = 'bg-success';
+                                } elseif ($pasien->status_berkas == 'Ditolak') {
+                                    $statusDisplay = $pasien->status_berkas; // Ditolak
+                                    $badgeClass = 'bg-danger';
+                                }
+                            }
+                            // Jika bukan Masyarakat Umum, atau status berkasnya sudah diverifikasi, status pemeriksaan akan muncul (hijau)
+                            // Jika Masyarakat Umum dan Ditolak, status Ditolak akan muncul (merah)
+
+                        @endphp
                         <tr>
                             <td class="fw-bold">{{ $index + 1 }}</td>
                             <td>{{ $pasien->nama_pasien }}</td>
@@ -440,8 +460,8 @@
                             <td>{{ $pasien->layanan_id ?? '-' }}</td>
                             <td>{{ $pasien->dokter->nama_dokter ?? '-' }}</td>
                             <td>
-                                <span class="badge bg-success">
-                                    {{ $pasien->status_pemeriksaan }}
+                                <span class="badge {{ $badgeClass }}">
+                                    {{ $statusDisplay }}
                                 </span>
                             </td>
                             <td>
@@ -464,6 +484,21 @@
             {{-- Card Layout Mobile --}}
             <div class="mobile-card-container">
                 @foreach ($dataPasien as $index => $pasien)
+                    @php
+                        $isMasyarakatUmum = strtolower($pasien->kategori_pendaftaran) == 'masyarakat umum';
+                        $statusDisplay = $pasien->status_pemeriksaan;
+                        $badgeClass = 'bg-success';
+
+                        if ($isMasyarakatUmum) {
+                            if ($pasien->status_berkas == 'Sudah Diverifikasi') {
+                                $statusDisplay = $pasien->status_pemeriksaan;
+                                $badgeClass = 'bg-success';
+                            } elseif ($pasien->status_berkas == 'Ditolak') {
+                                $statusDisplay = $pasien->status_berkas;
+                                $badgeClass = 'bg-danger';
+                            }
+                        }
+                    @endphp
                     <div class="patient-card">
                         <div class="patient-card-header">
                             <div class="patient-name">{{ $pasien->nama_pasien }}</div>
@@ -485,7 +520,7 @@
                         </div>
                         <div class="patient-card-footer">
                             <div class="patient-status">
-                                <span class="badge bg-success">{{ $pasien->status_pemeriksaan }}</span>
+                                <span class="badge {{ $badgeClass }}">{{ $statusDisplay }}</span>
                             </div>
                             <button class="btn btn-sm btn-riwayat text-white btn-action-icon" 
                                     data-id="{{ $pasien->id }}" 

@@ -154,15 +154,15 @@ return new class extends Migration
         });
 
         DB::table('jam_pelayanan')->insert([
-            ['jam_mulai' => '07:00', 'jam_selesai' => '08:00'],
             ['jam_mulai' => '08:00', 'jam_selesai' => '09:00'],
             ['jam_mulai' => '09:00', 'jam_selesai' => '10:00'],
             ['jam_mulai' => '10:00', 'jam_selesai' => '11:00'],
             ['jam_mulai' => '11:00', 'jam_selesai' => '12:00'],
+            ['jam_mulai' => '15:00', 'jam_selesai' => '16:00'],
             ['jam_mulai' => '16:00', 'jam_selesai' => '17:00'],
             ['jam_mulai' => '17:00', 'jam_selesai' => '18:00'],
             ['jam_mulai' => '18:00', 'jam_selesai' => '19:00'],
-            ['jam_mulai' => '19:00', 'jam_selesai' => '20:00'],
+            ['jam_mulai' => '19 :00', 'jam_selesai' => '20:00'],
         ]);
 
         Schema::create('jenis_pelayanan', function (Blueprint $table) {
@@ -195,7 +195,7 @@ return new class extends Migration
             $table->string('pendamping')->nullable();
             $table->string('kategori_pendaftaran')->nullable();
             $table->string('layanan_id')->nullable();
-            $table->foreignId('waktu_id')->constrained('jam_pelayanan')->onDelete('cascade');
+            $table->foreignId('waktu_id')->nullable('jam_pelayanan')->onDelete('set null');
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->text('keluhan')->nullable();
             $table->date('tgl_kunjungan')->nullable();
@@ -209,6 +209,7 @@ return new class extends Migration
             $table->string('video_before')->nullable();
             $table->string('video_after')->nullable();
             $table->string('feedback')->nullable();
+            $table->boolean('check')->default(0);
             $table->timestamps();
         });
     }

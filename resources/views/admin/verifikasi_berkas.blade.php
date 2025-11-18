@@ -11,6 +11,9 @@
         --text-dark: #343a40;
         --bg-light: #f8f9fa;
         --border-light: #dee2e6;
+        --danger-red: #dc3545;
+        --success-green: #28a745;
+        --card-header-bg: var(--primary-blue); /* Biru untuk Header Card */
     }
 
     /* Tampilan Header & Kontainer */
@@ -26,16 +29,18 @@
         border-radius: 0.5rem;
         overflow: hidden;
         margin-top: 20px;
+        position: relative;
+        min-height: 100px;
     }
     
-    .table-info thead tr { /* Mengganti table-primary/secondary dengan table-info untuk Verifikasi */
+    .table-info thead tr {
         background-color: var(--primary-blue);
         color: white;
         font-weight: 600;
         border-bottom: none;
     }
 
-    /* Tombol Aksi (Kecil, Ikonik, Minimalis) */
+    /* Tombol Aksi */
     .btn-sm {
         padding: 0.3rem 0.6rem;
         border-radius: 0.3rem;
@@ -51,19 +56,146 @@
     .btn-secondary { background-color: #6c757d !important; border-color: #6c757d !important; }
     .btn-secondary:hover { background-color: #5a6268 !important; }
 
-    /* Modal Styling */
-    .modal-content {
-        border-radius: 1rem;
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+    /* Tombol Aksi Icon Only (Wajib untuk Tampilan Rapi di Semua Resolusi) */
+    .btn-action-icon-verif {
+        padding: 0.3rem !important; 
+        width: 35px !important; 
+        height: 35px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
-    .modal-header.bg-info { background-color: var(--primary-blue) !important; }
-    .modal-header.bg-warning { background-color: #ffc107 !important; }
 
-    /* Detail Table dalam Modal */
-    .modal-body table th {
-        width: 25%;
-        font-weight: 600;
+    /* Mengelompokkan tombol aksi */
+    .action-buttons-group {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        flex-wrap: nowrap;
+    }
+
+    /* Sembunyikan Teks pada Tombol Aksi (Hanya Ikon yang Tampil) */
+    .action-buttons-group .btn-sm span {
+        display: none !important;
+    }
+
+    /* ======================================= */
+    /* ====== MOBILE CARD STYLES (BIRU-PUTIH) ====== */
+    /* ======================================= */
+    .card-mobile-list {
+        display: none; 
+        margin-top: 15px;
+    }
+
+    .pasien-card {
+        border: 1px solid var(--border-light);
+        border-radius: 0.7rem; 
+        margin-bottom: 15px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        background-color: white; 
+    }
+
+    .card-header-status {
+        padding: 12px 15px;
+        background-color: var(--card-header-bg);
+        color: white;
+        font-weight: bold;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid var(--secondary-blue);
+    }
+    
+    .card-header-status .badge-status {
+        font-size: 0.85em;
+        padding: 0.4em 0.8em;
+        border-radius: 0.5rem;
+        background-color: rgba(255, 255, 255, 0.2);
+        color: white;
+    }
+
+    .card-body-mobile {
+        padding: 15px;
+        background-color: white; 
+    }
+
+    .card-item {
+        display: flex;
+        flex-wrap: wrap; 
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 0.9em;
+        padding-bottom: 3px;
+        border-bottom: 1px dashed var(--border-light); 
+    }
+    .card-item:last-child {
+        border-bottom: none;
+    }
+
+    .card-item-label {
+        font-weight: 500;
         color: var(--secondary-blue);
+        width: 45%;
+        text-align: left;
+    }
+
+    .card-item-value {
+        text-align: right;
+        width: 55%;
+        color: var(--text-dark);
+    }
+
+    .card-item-value.contact-links {
+        width: 100%;
+        text-align: left;
+        margin-top: 5px; 
+    }
+    .card-item-value.contact-links a {
+        display: block;
+    }
+
+    .card-actions-mobile {
+        padding: 10px 15px;
+        border-top: 1px solid var(--border-light);
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        background-color: var(--bg-light); 
+    }
+    .card-actions-mobile .action-buttons-group {
+        width: 100%;
+        justify-content: space-between;
+    }
+    /* ======================================= */
+    /* ====== RESPONSIVE MODAL & LAYOUT ====== */
+    /* ======================================= */
+
+    /* Sembunyikan Tabel di layar kecil */
+    @media (max-width: 768px) {
+        .table-responsive > table {
+            display: none;
+        }
+        .card-mobile-list {
+            display: block;
+        }
+
+        /* Responsive Modal */
+        .modal-dialog {
+            margin: 0.5rem; 
+        }
+        .modal-dialog.modal-lg, .modal-dialog.modal-xl {
+            max-width: 95vw; 
+        }
+
+        /* Filter layout */
+        .filter-group .col-md-4 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+        .filter-group .col-md-4:last-child {
+            margin-top: 5px;
+        }
     }
 </style>
 
@@ -78,9 +210,7 @@
         <div class="alert alert-success mt-3">{{ session('success') }}</div>
     @endif
     
-    {{-- ======================================================= --}}
     {{-- FILTER VERIFIKASI --}}
-    {{-- ======================================================= --}}
     <form method="GET" action="{{ route('admin.verifikasi-berkas') }}" id="filter-verifikasi-form" class="filter-group row mb-4 align-items-end">
         
         <div class="col-md-4 mb-2">
@@ -95,31 +225,18 @@
             </select>
         </div>
         
-        <div class="col-md-4 mb-2">
-            <label for="filter_status_berkas" class="form-label">Filter Status Berkas</label>
-            <select name="status_berkas" id="filter_status_berkas" class="form-select" onchange="document.getElementById('filter-verifikasi-form').submit()">
-                <option value="">-- Semua Status Berkas --</option>
-                @foreach ($availableStatus as $status)
-                    <option value="{{ $status }}" {{ $currentStatusBerkas == $status ? 'selected' : '' }}>
-                        {{ $status }}
-                    </option>
-                @endforeach
-            </select>
-        </div>
-        <div class="col-md-4 mb-2">
+        <div class="col-md-4 mb-2 d-flex align-items-end">
             <a href="{{ route('admin.verifikasi-berkas') }}" class="btn btn-outline-secondary w-100">Reset Filter</a>
         </div>
     </form>
 
-    {{-- ======================================================= --}}
     {{-- DAFTAR PASIEN UNTUK VERIFIKASI --}}
-    {{-- ======================================================= --}}
-
     <div class="table-responsive">
         @if($pasienVerifikasi->isEmpty())
             <div class="alert alert-info text-center">Tidak ada pasien yang menunggu verifikasi berkas saat ini (atau sesuai filter).</div>
         @else
-            <table class="table table-striped table-hover align-middle">
+            {{-- TABEL (Desktop Only) --}}
+            <table class="table table-striped table-hover align-middle d-none d-md-table">
                 <thead class="table-info">
                     <tr>
                         <th>Antrian</th>
@@ -129,7 +246,7 @@
                         <th>Kategori</th>
                         <th>Kontak</th>
                         <th>Status Berkas</th>
-                        <th style="width: 28%;">Aksi</th>
+                        <th style="width: 15%;">Aksi</th> {{-- Dikecilkan lagi lebarnya --}}
                     </tr>
                 </thead>
                 <tbody>
@@ -141,7 +258,7 @@
                             <td>{{ $pasien->pendamping ?? '-' }}</td>
                             <td>{{ $pasien->kategori_pendaftaran }}</td>
                             <td>
-                                {{-- Link Langsung WhatsApp dan Email --}}
+                                {{-- Link Kontak --}}
                                 <a href="https://wa.me/62{{ ltrim(preg_replace('/[^0-9]/', '', $pasien->nomor_hp), '0') }}" 
                                 target="_blank" 
                                 class="text-success me-2" 
@@ -161,32 +278,99 @@
                                 </span>
                             </td>
                             <td>
-                                <button class="btn btn-sm btn-info text-white me-1 btn-detail" data-id="{{ $pasien->id }}" title="Detail Pasien">
-                                    <i class="fa-solid fa-file-invoice"></i> Detail
-                                </button>
-                                
-                                <button class="btn btn-sm btn-warning me-1 btn-status-berkas" data-id="{{ $pasien->id }}" data-current-status="{{ $pasien->status_berkas }}" title="Verifikasi Berkas">
-                                    <i class="fa-solid fa-file-check"></i> Status Berkas
-                                </button>
+                                {{-- KELOMPOK TOMBOL AKSI HANYA IKON (DESKTOP) --}}
+                                <div class="action-buttons-group">
+                                    <button class="btn btn-sm btn-info text-white btn-detail btn-action-icon-verif" data-id="{{ $pasien->id }}" title="Detail Pasien">
+                                        <i class="fa-solid fa-file-invoice"></i> <span>Detail</span>
+                                    </button>
+                                    
+                                    <button class="btn btn-sm btn-warning btn-status-berkas btn-action-icon-verif" data-id="{{ $pasien->id }}" data-current-status="{{ $pasien->status_berkas }}" title="Verifikasi Berkas">
+                                        <i class="fa-solid fa-file-circle-check"></i> <span>Status Berkas</span>
+                                    </button>
 
-                                <button class="btn btn-sm btn-secondary btn-dokumen" data-bukti="{{ asset('public/storage/' . $pasien->bukti_pembayaran) }}" data-sktm="{{ $pasien->sktm ? asset('public/storage/' . $pasien->sktm) : '' }}" title="Lihat Dokumen">
-                                    <i class="fa-solid fa-cloud-arrow-down"></i> Dokumen
-                                </button>
+                                    <button class="btn btn-sm btn-secondary btn-dokumen btn-action-icon-verif" data-bukti="{{ asset('public/storage/' . $pasien->bukti_pembayaran) }}" data-sktm="{{ $pasien->sktm ? asset('public/storage/' . $pasien->sktm) : '' }}" title="Lihat Dokumen">
+                                        <i class="fa-solid fa-cloud-arrow-down"></i> <span>Dokumen</span>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
+
+            {{-- CARD (Mobile Only) --}}
+            <div class="card-mobile-list d-block d-md-none">
+                @foreach ($pasienVerifikasi as $pasien)
+                    @php
+                        $dateFormatted = \Carbon\Carbon::parse($pasien->tgl_kunjungan)->isoFormat('D MMM YYYY');
+                        $statusBerkasBadge = $pasien->status_berkas == 'Belum Diverifikasi' ? 'bg-danger' : 'bg-success';
+                    @endphp
+                    <div class="pasien-card">
+                        <div class="card-header-status">
+                            <div>
+                                <i class="fa-solid fa-file-check me-2"></i> **{{ $pasien->nama_pasien }}**
+                            </div>
+                            <span class="badge-status {{ $statusBerkasBadge }}">
+                                {{ $pasien->status_berkas }}
+                            </span>
+                        </div>
+                        <div class="card-body-mobile">
+                            <div class="card-item">
+                                <span class="card-item-label"><i class="fa-solid fa-ticket-simple me-1"></i> Antrian</span>
+                                <span class="card-item-value fw-bold">{{ $pasien->nomor_antrian }}</span>
+                            </div>
+                            <div class="card-item">
+                                <span class="card-item-label"><i class="fa-solid fa-calendar-day me-1"></i> Tgl Kunjungan</span>
+                                <span class="card-item-value">{{ $dateFormatted }}</span>
+                            </div>
+                            <div class="card-item">
+                                <span class="card-item-label"><i class="fa-solid fa-user-tag me-1"></i> Kategori</span>
+                                <span class="card-item-value">{{ $pasien->kategori_pendaftaran }}</span>
+                            </div>
+                            <div class="card-item">
+                                <span class="card-item-label"><i class="fa-solid fa-user me-1"></i> Pendamping</span>
+                                <span class="card-item-value">{{ $pasien->pendamping ?? '-' }}</span>
+                            </div>
+                            <div class="card-item">
+                                <span class="card-item-label"><i class="fa-solid fa-phone me-1"></i> Kontak</span>
+                                <span class="card-item-value contact-links">
+                                    <a href="https://wa.me/62{{ ltrim(preg_replace('/[^0-9]/', '', $pasien->nomor_hp), '0') }}" target="_blank" class="text-success small">
+                                        <i class="fa-brands fa-whatsapp me-1"></i> {{ $pasien->nomor_hp }}
+                                    </a>
+                                    @if($pasien->email)
+                                    <a href="mailto:{{ $pasien->email }}" class="text-danger small">
+                                        <i class="fa-solid fa-envelope me-1"></i> Email
+                                    </a>
+                                    @endif
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-actions-mobile">
+                            <div class="action-buttons-group">
+                                {{-- Tombol Aksi (Hanya Ikon) --}}
+                                <button class="btn btn-sm btn-info text-white btn-detail btn-action-icon-verif" data-id="{{ $pasien->id }}" title="Detail Pasien">
+                                    <i class="fa-solid fa-file-invoice"></i>
+                                </button>
+                                
+                                <button class="btn btn-sm btn-warning btn-status-berkas btn-action-icon-verif" data-id="{{ $pasien->id }}" data-current-status="{{ $pasien->status_berkas }}" title="Verifikasi Berkas">
+                                    <i class="fa-solid fa-file-circle-check"></i>
+                                </button>
+
+                                <button class="btn btn-sm btn-secondary btn-dokumen btn-action-icon-verif" data-bukti="{{ asset('public/storage/' . $pasien->bukti_pembayaran) }}" data-sktm="{{ $pasien->sktm ? asset('public/storage/' . $pasien->sktm) : '' }}" title="Lihat Dokumen">
+                                    <i class="fa-solid fa-cloud-arrow-down"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
         @endif
     </div>
 </div>
 
-{{-- ======================================================= --}}
-{{-- MODALS (Menggunakan modal yang sama dengan data_pasien) --}}
-{{-- ======================================================= --}}
-{{-- Modal 1: Detail Pasien --}}
+{{-- MODALS (RESPONSIVE) --}}
 <div class="modal fade" id="detailPasienModal" tabindex="-1" aria-labelledby="detailPasienModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header bg-info text-white">
                 <h5 class="modal-title" id="detailPasienModalLabel">Detail Pasien - Antrian: <span id="detail-antrian"></span></h5>
@@ -212,7 +396,6 @@
     </div>
 </div>
 
-{{-- Modal 2: Ubah Status Berkas --}}
 <div class="modal fade" id="statusBerkasModal" tabindex="-1" aria-labelledby="statusBerkasModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -241,9 +424,8 @@
     </div>
 </div>
 
-{{-- Modal 3: Lihat Dokumen --}}
 <div class="modal fade" id="dokumenModal" tabindex="-1" aria-labelledby="dokumenModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header bg-secondary text-white">
                 <h5 class="modal-title" id="dokumenModalLabel"><i class="fa-solid fa-folder-open me-2"></i>Dokumen Pasien</h5>
@@ -269,16 +451,13 @@
 </div>
 
 
-{{-- ======================================================= --}}
 {{-- SCRIPT INTERAKSI MODAL & AJAX --}}
-{{-- ======================================================= --}}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         
         // --- MODAL 1: LIHAT DETAIL (AJAX) ---
         const detailModal = new bootstrap.Modal(document.getElementById('detailPasienModal'));
-        // Template URL untuk mengambil detail pasien (menggunakan route yang sudah ada)
-        const detailUrlTemplate = `{{ route('admin.pasien.detail', ['id' => 'PASIEN_ID']) }}`;
+        const detailUrlTemplate = `{{ route('admin.pasien.detail', ['id' => 'PASIEN_ID']) }}`; 
 
         document.querySelectorAll('.btn-detail').forEach(button => {
             button.addEventListener('click', function() {
@@ -286,7 +465,6 @@
                 const loading = document.getElementById('loading-spinner');
                 const detailTable = document.querySelector('#detailPasienModal table');
                 
-                // Reset tampilan modal dan tampilkan loading
                 detailTable.style.display = 'none';
                 loading.style.display = 'block';
                 detailModal.show();
@@ -294,14 +472,18 @@
                 const fetchUrl = detailUrlTemplate.replace('PASIEN_ID', pasienId);
 
                 fetch(fetchUrl)
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
                     .then(data => {
                         const d = data.data;
+                        
                         document.getElementById('detail-antrian').textContent = d.nomor_antrian;
                         document.getElementById('detail-nama').textContent = d.nama_pasien;
                         document.getElementById('detail-hp').textContent = d.nomor_hp;
-                        // Diasumsikan controller Anda memiliki field 'email' di response detail
-                        // document.getElementById('detail-email').textContent = d.email; 
                         document.getElementById('detail-tgl-jk').textContent = `${d.tgl_lahir} / ${d.jenis_kelamin}`;
                         document.getElementById('detail-pendamping').textContent = d.pendamping;
                         document.getElementById('detail-tgl-kunjungan').textContent = d.tgl_kunjungan;
@@ -327,8 +509,7 @@
         // --- MODAL 2: UBAH STATUS BERKAS ---
         const statusModal = new bootstrap.Modal(document.getElementById('statusBerkasModal'));
         const formStatus = document.getElementById('form-status-berkas');
-        // Template URL untuk update status berkas (menggunakan route yang sudah ada)
-        const updateUrlTemplate = `{{ route('admin.pasien.update-berkas', ['id' => 'PASIEN_ID']) }}`;
+        const updateUrlTemplate = `{{ route('admin.pasien.update-berkas', ['id' => 'PASIEN_ID']) }}`; 
 
         document.querySelectorAll('.btn-status-berkas').forEach(button => {
             button.addEventListener('click', function() {
@@ -354,12 +535,19 @@
                 const buktiPath = this.dataset.bukti;
                 const sktmPath = this.dataset.sktm;
                 
-                document.getElementById('bukti-pembayaran-frame').src = buktiPath;
-
                 const sktmFrame = document.getElementById('sktm-frame');
                 const sktmNotFound = document.getElementById('sktm-not-found');
-                
-                if (sktmPath) {
+                const assetBaseUrl = '{{ asset('public/storage/') }}';
+
+                // Bukti Pembayaran
+                if (buktiPath && !buktiPath.endsWith(assetBaseUrl)) {
+                    document.getElementById('bukti-pembayaran-frame').src = buktiPath;
+                } else {
+                     document.getElementById('bukti-pembayaran-frame').src = '';
+                }
+
+                // SKTM
+                if (sktmPath && !sktmPath.endsWith(assetBaseUrl)) {
                     sktmFrame.src = sktmPath;
                     sktmFrame.style.display = 'block';
                     sktmNotFound.style.display = 'none';

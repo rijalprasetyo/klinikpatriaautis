@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Klinik Patria</title>
     <link rel="icon" type="image/x-icon" href="{{ asset('assets/logoklinik1.png') }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -58,16 +59,23 @@
             padding: 1.5rem 1rem;
         }
 
+        /* --- PERUBAHAN DI SINI --- */
         .sidebar-logo {
-            background: white;
-            width: 60px; height: 60px;
-            border-radius: 50%;
-            overflow: hidden;
-            margin-bottom: 10px;
+            /* Hapus background, radius, dan overflow */
+            
+            padding: 0;
+            display: flex; 
+            justify-content: center;
+            align-items: center;
         }
         .sidebar-logo img {
-            width: 100%; height: 100%; object-fit: contain;
+            /* Atur lebar gambar secara langsung */
+            width: 100px; 
+            height: 100px; 
+            object-fit: contain; 
+            background: transparent;
         }
+        /* ----------------------- */
 
         .sidebar-header h4 {
             font-weight: 700; font-size: 1rem; margin: 0;

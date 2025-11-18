@@ -51,12 +51,9 @@
         background-color: var(--primary-dark);
     }
     .sidebar-logo {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        overflow: hidden;
+        width: 100px;
+        height: 100px;
         margin: 0 auto 10px auto;
-        background: white;
         display: flex;
         align-items: center;
         justify-content: center;

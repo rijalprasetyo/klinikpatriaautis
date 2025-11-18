@@ -210,6 +210,35 @@
         background: #f1f5f9; /* Slate 100 */
         color: #64748b; /* Slate 500 */
     }
+    
+    /* STRUKTUR LABEL KATEGORI BARU */
+    .category-label {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 600;
+        line-height: 1.2;
+        margin-top: 4px;
+        white-space: nowrap;
+    }
+
+    .category-label.category-blue { /* Disabilitas SKTM - Biru */
+        background-color: var(--primary-light); /* dbeafe */
+        color: var(--primary-dark); /* 1e40af */
+    }
+
+    .category-label.category-orange { /* Disabilitas Non-SKTM - Oranye */
+        background-color: #fef3c7; /* light orange/warning light */
+        color: #b45309; /* dark orange */
+    }
+
+    .category-label.category-grey { /* Masyarakat Umum - Abu-abu */
+        background-color: #e2e8f0; /* slate 200/border */
+        color: #475569; /* slate 700 */
+    }
+    /* AKHIR STRUKTUR LABEL KATEGORI BARU */
+
 
     /* Struktur Status untuk Desktop */
     .status-group {
@@ -959,6 +988,16 @@
                                         $statusTampil = $statusPemeriksaan;
                                         $badgeClass = ($statusPemeriksaan == 'Sudah Diperiksa') ? 'success' : 'warning';
                                     }
+                                    
+                                    // 3. Tentukan Warna Label Kategori BARU
+                                    $kategori = $data->kategori_pendaftaran ?? 'N/A';
+                                    $categoryClass = 'category-grey'; // Default: Abu-abu (Masyarakat Umum)
+                                    if ($kategori == $kategoriSktm) {
+                                        $categoryClass = 'category-blue';
+                                    } elseif ($kategori == $kategoriNonSktm) {
+                                        $categoryClass = 'category-orange';
+                                    }
+
                                 @endphp
                                 <tr>
                                     <td class="text-center">
@@ -970,7 +1009,8 @@
                                     </td>
                                     <td>
                                         {{ $data->nama_pasien }} <br>
-                                        <small class="text-muted">{{ $data->layanan_id ?? '-' }} <br> {{ $data->kategori_pendaftaran ?? 'N/A' }}</small>                                         
+                                        <small class="text-muted">{{ $data->layanan_id ?? '-' }}</small> <br>
+                                        <span class="category-label {{ $categoryClass }}">{{ $kategori }}</span> 
                                     </td>
                                     <td class="text-center">
                                         <div class="status-group">
@@ -1012,7 +1052,7 @@
                                 continue;
                             }
                             
-                            // Definisikan variabel Note di sini untuk menghindari error
+                            // Definisikan variabel Note dan Status
                             $statusTampil = '';
                             $badgeClass = 'warning'; 
                             $showNote = false;
@@ -1038,6 +1078,15 @@
                             } else {
                                 $statusTampil = $statusPemeriksaan;
                                 $badgeClass = ($statusPemeriksaan == 'Sudah Diperiksa') ? 'success' : 'warning';
+                            }
+                            
+                            // Tentukan Warna Label Kategori BARU untuk Mobile
+                            $kategori = $data->kategori_pendaftaran ?? 'N/A';
+                            $categoryClass = 'category-grey'; // Default: Abu-abu
+                            if ($kategori == $kategoriSktm) {
+                                $categoryClass = 'category-blue';
+                            } elseif ($kategori == $kategoriNonSktm) {
+                                $categoryClass = 'category-orange';
                             }
                         @endphp
 
@@ -1081,7 +1130,9 @@
                                 </div>
                                 <div class="schedule-info-item">
                                     <span class="schedule-info-label">Kategori Pendaftar</span>
-                                    <span class="schedule-info-value">{{ $data->kategori_pendaftaran ?? 'N/A' }}</span>
+                                    <span class="schedule-info-value">
+                                        <span class="category-label {{ $categoryClass }}">{{ $kategori }}</span>
+                                    </span>
                                 </div>
                             </div>
                             
@@ -1102,7 +1153,7 @@
         <div class="card-category-wrapper">
             <h2 class="text-center">Pilih Kategori Pendaftaran</h2>
             <p class="text-center text-muted mb-5">
-                Pilih salah satu kategori di bawah ini untuk memulai proses pendaftaran Anda. Layanan **Prioritas Utama** diberikan kepada disabilitas dari keluarga prasejahtera (dengan SKTM).
+                Pilih salah satu kategori di bawah ini untuk memulai proses pendaftaran Anda. Layanan <strong style="color: black;">Prioritas Utama</strong> diberikan kepada <strong style="color: black;"> Disabilitas Dari Keluarga Prasejahtera (dengan SKTM)</strong>
             </p>
 
             <div class="row g-4">

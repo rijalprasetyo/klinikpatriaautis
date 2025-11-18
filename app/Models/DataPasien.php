@@ -34,6 +34,7 @@ class DataPasien extends Model
         'user_id',
         'video_after',
         'video_before',
+        'check',
         'feedback',
     ];
 

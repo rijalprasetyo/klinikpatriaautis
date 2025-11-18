@@ -136,8 +136,8 @@
 
 <div class="container-fluid">
     <h2 class="mb-4"><i class="fa-solid fa-people-group me-2"></i> Verifikasi Pasien Masyarakat Umum</h2>
-    <p class="text-muted">Daftar pasien dengan kategori **Masyarakat Umum** yang memerlukan verifikasi berkas.</p>
-
+    <p class="text-muted">Daftar pasien dengan kategori Masyarakat Umum yang memerlukan verifikasi berkas.</p>
+    <h6 clas="text-muted">Gunakan Check List untuk menandai pengembalian Dana</h6>
     <hr>
 
     {{-- Alert Notifikasi --}}
@@ -370,9 +370,10 @@
                                                     title="Ubah Status Berkas">
                                                 <i class="fa-solid fa-clipboard-check"></i>
                                             </button>
-
-                                            {{-- CHECKBOX BIASA (NON-DATABASE) - Diletakkan di tab Reject --}}
-                                            <input type="checkbox" class="form-check-input ms-1 me-2" title="Checklist" data-id="{{ $pasien->id }}">
+                                            <input type="checkbox" 
+                                                class="form-check-input" 
+                                                data-id="{{ $pasien->id }}"
+                                                {{ $pasien->check ? 'checked' : '' }}>
                                         </div>
                                     </td>
                                 </tr>
@@ -538,11 +539,28 @@
         // ===== CHECKLIST NON-DATABASE (Sederhana) - Berada di Tab Reject =====
         document.querySelectorAll('#reject .form-check-input[type="checkbox"]').forEach(checkbox => {
             checkbox.addEventListener('change', function() {
-                const checkedIds = Array.from(document.querySelectorAll('#reject .form-check-input[type="checkbox"]:checked'))
-                                     .map(cb => cb.dataset.id);
-                console.log('ID Pasien yang dicentang (Tab Reject):', checkedIds);
+
+                const checkedIds = Array.from(
+                    document.querySelectorAll('#reject .form-check-input[type="checkbox"]:checked')
+                ).map(cb => cb.dataset.id);
+
+                fetch("{{ route('admin.update-checkbox') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({
+                        checked: checkedIds
+                    })
+                })
+                .then(res => res.json())
+                .then(res => console.log(res));
             });
         });
+
+
+
 
         // ===== MODAL DETAIL PASIEN (VIEW ONLY) - Diambil dari kedua tab =====
         document.querySelectorAll('.btn-detail').forEach(button => {

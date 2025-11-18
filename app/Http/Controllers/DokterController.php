@@ -46,19 +46,33 @@ class DokterController extends Controller
         return back()->with('error', 'Password salah.');
     }
 
-
     public function dashboard()
     {
+        // Kategori Pendaftaran
+        $kategoriUmum = 'Masyarakat Umum';
+        
         // tanggal hari ini
         $today = Carbon::today();
 
-        // total pasien hari ini
+        // 1. Total pasien hari ini (Hari ini = Hari ini mendaftar, tanpa filter status berkas)
+        // Asumsi: Anda tetap ingin menghitung semua yang mendaftar hari ini, terlepas dari status berkasnya,
+        // karena fokus filter ada di status pemeriksaan.
         $totalPasienHariIni = DataPasien::whereDate('created_at', $today)->count();
 
-        // total pasien belum diperiksa
-        $totalBelumDiperiksa = DataPasien::where('status_pemeriksaan', 'Belum Diperiksa')->count();
+        // 2. Total pasien belum diperiksa
+        // Logika Diperbarui: Hanya hitung yang 'Belum Diperiksa' DAN (bukan Masyarakat Umum ATAU Masyarakat Umum dengan status berkas 'Sudah Diverifikasi')
+        $totalBelumDiperiksa = DataPasien::where('status_pemeriksaan', 'Belum Diperiksa')
+            ->where(function ($query) use ($kategoriUmum) {
+                $query->where('kategori_pendaftaran', '!=', $kategoriUmum)
+                    ->orWhere(function ($subQuery) use ($kategoriUmum) {
+                        $subQuery->where('kategori_pendaftaran', $kategoriUmum)
+                                ->where('status_berkas', 'Sudah Diverifikasi');
+                    });
+            })
+            ->count();
 
-        // total pasien selesai diperiksa
+        // 3. Total pasien selesai diperiksa
+        // Tidak ada perubahan di sini, karena 'Selesai Diperiksa' mengindikasikan bahwa verifikasi berkas sudah pasti lewat.
         $totalSelesaiDiperiksa = DataPasien::where('status_pemeriksaan', 'Selesai Diperiksa')->count();
 
         return view('dokter.dashboard', compact(
@@ -178,20 +192,26 @@ class DokterController extends Controller
         // Ambil nilai filter dari request
         $filterStartDate = $request->query('start_date');
         $filterEndDate = $request->query('end_date');
-        $filterStatusPemeriksaan = $request->query('status_pemeriksaan');
         $filterNamaPasien = $request->query('nama_pasien');
         
-        // Status Berkas yang Diizinkan untuk Tampil (Wajib)
+        // Status Pemeriksaan yang Diwajibkan untuk Riwayat ini (HANYA Selesai Diperiksa)
+        $requiredStatusPemeriksaan = 'Selesai Diperiksa';
+
+        // Status Berkas yang Diizinkan untuk Tampil (Wajib, dari kode lama)
         $allowedStatusBerkas = ['Belum Diverifikasi', 'Sudah Diverifikasi'];
 
-        // KOREKSI: Hapus 'layanan' dari with(). Relasi waktu tetap.
         $query = DataPasien::with(['waktu'])
-            // WAJIB: Hanya tampilkan pasien dengan status berkas yang diverifikasi
+            
+            // 1. KONDISI WAJIB: Hanya tampilkan data dengan status 'Selesai Diperiksa'
+            ->where('status_pemeriksaan', $requiredStatusPemeriksaan)
+            
+            // 2. Filter Status Berkas (Dipertahankan dari kode lama user)
             ->whereIn('status_berkas', $allowedStatusBerkas) 
+            
             ->orderBy('tgl_kunjungan', 'desc')
             ->orderBy('waktu_id', 'asc');
         
-        // Filter berdasarkan rentang tanggal
+        // Filter berdasarkan rentang tanggal (OPSIONAL, dari request user)
         if ($filterStartDate) {
             $query->whereDate('tgl_kunjungan', '>=', $filterStartDate);
         }
@@ -200,27 +220,22 @@ class DokterController extends Controller
             $query->whereDate('tgl_kunjungan', '<=', $filterEndDate);
         }
         
-        // Filter Status Pemeriksaan
-        if ($filterStatusPemeriksaan && in_array($filterStatusPemeriksaan, ['Belum Diperiksa', 'Sedang Diperiksa', 'Selesai Diperiksa'])) {
-            $query->where('status_pemeriksaan', $filterStatusPemeriksaan);
-        } else {
-            // Jika filter status kosong, TAMPILKAN SEMUA STATUS PEMERIKSAAN.
-            $filterStatusPemeriksaan = null; // Reset filter yang dikirim ke view jika tujuannya SEMUA
-        }
-        
-        // Filter Nama Pasien
+        // Filter Nama Pasien (OPSIONAL)
         if ($filterNamaPasien) {
             $query->where('nama_pasien', 'like', '%' . $filterNamaPasien . '%');
         }
         
         $dataPasien = $query->get();
         
+        // Karena status sudah di-hardcode, kita kirimkan nilai ini ke view
+        $filterStatusPemeriksaan = $requiredStatusPemeriksaan;
+        
         return view('dokter.riwayat_pasien', compact(
             'dokter',
             'dataPasien',
             'filterStartDate',
             'filterEndDate',
-            'filterStatusPemeriksaan', // Nilai ini kini bisa null, yang berarti 'Semua Status'
+            'filterStatusPemeriksaan', 
             'filterNamaPasien'
         ));
     }

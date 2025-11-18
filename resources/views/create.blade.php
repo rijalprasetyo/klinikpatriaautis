@@ -746,6 +746,12 @@
                     <div>
                         <p class="mb-1 opacity-75">Total Biaya Pendaftaran</p>
                         <div class="payment-amount">{{ $biayaFormatted }}</div>
+                        
+                        {{-- Tambahan Nomor Rekening di sini --}}
+                        <p class="mb-1 mt-2 small fw-semibold text-white">
+                            Transfer ke: BCA - 3151889601 (Klik Disini)
+                        </p>
+                        
                         <div class="payment-status-badge pending" id="payment_status_badge">
                             <i class="fa-solid fa-clock"></i>
                             <span>Belum Dibayar</span>
