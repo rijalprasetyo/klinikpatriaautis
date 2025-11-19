@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\DataBackup;
+use ZipArchive;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
@@ -18,63 +19,144 @@ class DataBackupKontroler extends Controller
 
     public function backup()
     {
-        $dbName = env('DB_DATABASE');
-        $dbUser = env('DB_USERNAME');
-        $dbPass = env('DB_PASSWORD');
-        $dbHost = env('DB_HOST', '127.0.0.1');
-
         $timestamp = now()->format('Ymd_His');
-        $folderTemp = storage_path("app/temp_backup_$timestamp");
-        $fileZip = storage_path("app/backup_$timestamp.zip");
-
-        // Buat folder sementara
-        File::makeDirectory($folderTemp, 0775, true, true);
-
-        // Export database
-        $sqlFile = "$folderTemp/database_$timestamp.sql";
-        $command = "mysqldump --user={$dbUser} --password={$dbPass} --host={$dbHost} {$dbName} > \"$sqlFile\"";
-        exec($command);
-
-        // Copy asset
-        File::copyDirectory(public_path('assets'), "$folderTemp/assets");
-        File::copyDirectory(storage_path('app/public'), "$folderTemp/storage_public");
-
-        // ZIP (built-in Laravel)
-        $zip = new \ZipArchive();
-        if ($zip->open($fileZip, \ZipArchive::CREATE) === TRUE) {
+    
+        // Folder temp untuk proses backup
+        $tempFolder = storage_path("app/backup_temp_$timestamp");
+    
+        // Folder penyimpanan ZIP di public_html/public/storage/backup_files
+        $backupFolder = public_path("storage/backup_files");
+        File::makeDirectory($backupFolder, 0775, true, true);
+    
+        // File ZIP yang akan dibuat
+        $zipPath = $backupFolder . "/backup_$timestamp.zip";
+    
+        // File SQL di folder temp
+        $sqlPath = "$tempFolder/database_$timestamp.sql";
+    
+        // 1. Buat folder temp
+        File::makeDirectory($tempFolder, 0775, true);
+    
+        /*
+        |--------------------------------------------------------------------------
+        | 2. BACKUP DATABASE TANPA exec()
+        |--------------------------------------------------------------------------
+        */
+        $pdo = DB::connection()->getPdo();
+        $dbName = env('DB_DATABASE');
+    
+        $sql = "SET FOREIGN_KEY_CHECKS=0;\n\n";
+        $tables = DB::select("SHOW TABLES");
+        $key = "Tables_in_{$dbName}";
+    
+        foreach ($tables as $table) {
+            $tableName = $table->$key;
+    
+            $create = DB::select("SHOW CREATE TABLE `$tableName`")[0]->{'Create Table'};
+    
+            $sql .= "DROP TABLE IF EXISTS `$tableName`;\n";
+            $sql .= $create . ";\n\n";
+    
+            $rows = DB::table($tableName)->get();
+            foreach ($rows as $row) {
+                $values = array_map(function ($value) use ($pdo) {
+                    return $pdo->quote($value);
+                }, (array) $row);
+    
+                $sql .= "INSERT INTO `$tableName` VALUES(" . implode(',', $values) . ");\n";
+            }
+            $sql .= "\n\n";
+        }
+    
+        $sql .= "SET FOREIGN_KEY_CHECKS=1;\n";
+    
+        file_put_contents($sqlPath, $sql);
+    
+        /*
+        |--------------------------------------------------------------------------
+        | 3. COPY ASSETS
+        |--------------------------------------------------------------------------
+        */
+    
+        // assets → temp/assets
+        if (File::exists(public_path('assets'))) {
+            File::copyDirectory(public_path('assets'), "$tempFolder/assets");
+        }
+    
+        // === FIX PATH SESUAI PERMINTAAN ===
+        // public_html/public/storage/bukti_pembayaran
+        if (File::exists(public_path('storage/bukti_pembayaran'))) {
+            File::copyDirectory(public_path('storage/bukti_pembayaran'), "$tempFolder/bukti_pembayaran");
+        }
+    
+        if (File::exists(public_path('storage/sktm'))) {
+            File::copyDirectory(public_path('storage/sktm'), "$tempFolder/sktm");
+        }
+    
+        if (File::exists(public_path('storage/video_before'))) {
+            File::copyDirectory(public_path('storage/video_before'), "$tempFolder/video_before");
+        }
+    
+        if (File::exists(public_path('storage/video_after'))) {
+            File::copyDirectory(public_path('storage/video_after'), "$tempFolder/video_after");
+        }
+    
+        /*
+        |--------------------------------------------------------------------------
+        | 4. ZIP SEMUA FILE
+        |--------------------------------------------------------------------------
+        */
+        $zip = new ZipArchive();
+        if ($zip->open($zipPath, ZipArchive::CREATE) === TRUE) {
+    
             $files = new \RecursiveIteratorIterator(
-                new \RecursiveDirectoryIterator($folderTemp),
+                new \RecursiveDirectoryIterator($tempFolder),
                 \RecursiveIteratorIterator::SELF_FIRST
             );
-
+    
             foreach ($files as $file) {
                 if (!$file->isDir()) {
-                    $filePath    = $file->getRealPath();
-                    $relativePath = substr($filePath, strlen($folderTemp) + 1);
-
-                    $zip->addFile($filePath, $relativePath);
+                    $filePath = $file->getRealPath();
+                    $relative = substr($filePath, strlen($tempFolder) + 1);
+    
+                    $zip->addFile($filePath, $relative);
                 }
             }
-
+    
             $zip->close();
         }
-
-        // Hapus folder temp
-        File::deleteDirectory($folderTemp);
-
-        // Catat log
-        $fileSize = filesize($fileZip);
+    
+        $zipSize = filesize($zipPath);
+    
+        /*
+        |--------------------------------------------------------------------------
+        | 5. SIMPAN LOG DATABASE
+        |--------------------------------------------------------------------------
+        */
         DataBackup::create([
-            'file_name' => "backup_$timestamp.zip",
-            'file_path' => $fileZip,
-            'file_size' => number_format($fileSize / 1024 / 1024, 2) . ' MB',
-            'created_by' => Auth::guard('admin')->user()->name ?? 'System',
-            'status' => 'Sukses',
+            'file_name'  => "backup_$timestamp.zip",
+            'file_path'  => $zipPath,
+            'file_size'  => number_format($zipSize / 1024 / 1024, 2) . ' MB',
+            'created_by' => auth()->guard('admin')->user()->name ?? 'System',
+            'status'     => 'Sukses',
         ]);
-
-        // 👉 Langsung download ke komputer admin
-        return response()->download($fileZip)->deleteFileAfterSend(true);
+    
+        /*
+        |--------------------------------------------------------------------------
+        | 6. HAPUS FOLDER TEMPORARY
+        |--------------------------------------------------------------------------
+        */
+        File::deleteDirectory($tempFolder);
+    
+        /*
+        |--------------------------------------------------------------------------
+        | 7. DOWNLOAD ZIP KE USER
+        |--------------------------------------------------------------------------
+        */
+        return response()->download($zipPath);
     }
+
+
 
 
     public function resetSystem()
@@ -97,10 +179,11 @@ class DataBackupKontroler extends Controller
             DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
             // Lokasi folder tempat file pasien tersimpan
-            $buktiPembayaranPath = storage_path('app/public/bukti_pembayaran');
-            $sktmPath = storage_path('app/public/sktm');
-            $videoBeforePath = storage_path('app/public/video_before');
-            $videoAfterPath = storage_path('app/public/video_after');
+            $buktiPembayaranPath = public_path('storage/bukti_pembayaran');
+            $sktmPath            = public_path('storage/sktm');
+            $videoBeforePath     = public_path('storage/video_before');
+            $videoAfterPath      = public_path('storage/video_after');
+
 
             // Hapus semua folder yang berisi file pasien
             File::deleteDirectory($buktiPembayaranPath);
