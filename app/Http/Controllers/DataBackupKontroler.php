@@ -25,48 +25,57 @@ class DataBackupKontroler extends Controller
 
         $timestamp = now()->format('Ymd_His');
         $folderTemp = storage_path("app/temp_backup_$timestamp");
-        $backupFolder = 'C:\\Backupdata\\';
-        $fileRar = $backupFolder . "backup_{$timestamp}.rar";
+        $fileZip = storage_path("app/backup_$timestamp.zip");
 
-        // Buat folder tujuan kalau belum ada
-        if (!File::exists($backupFolder)) {
-            File::makeDirectory($backupFolder, 0777, true);
-        }
-
-        // Buat folder sementara untuk backup
+        // Buat folder sementara
         File::makeDirectory($folderTemp, 0775, true, true);
 
-        // Export database ke file .sql
-        $sqlFile = "$folderTemp\\database_$timestamp.sql";
+        // Export database
+        $sqlFile = "$folderTemp/database_$timestamp.sql";
         $command = "mysqldump --user={$dbUser} --password={$dbPass} --host={$dbHost} {$dbName} > \"$sqlFile\"";
         exec($command);
 
-        // Salin file penting
-        File::copyDirectory(public_path('assets'), "$folderTemp\\assets");
-        File::copyDirectory(storage_path('app/public'), "$folderTemp\\storage_public");
+        // Copy asset
+        File::copyDirectory(public_path('assets'), "$folderTemp/assets");
+        File::copyDirectory(storage_path('app/public'), "$folderTemp/storage_public");
 
-        // Kompres pakai WinRAR (pastikan path rar.exe benar)
-        $rarPath = '"C:\\Program Files\\WinRAR\\Rar.exe"';
-        $compressCmd = "$rarPath a -r -ep1 \"$fileRar\" \"$folderTemp\\*\"";
-        exec($compressCmd);
+        // ZIP (built-in Laravel)
+        $zip = new \ZipArchive();
+        if ($zip->open($fileZip, \ZipArchive::CREATE) === TRUE) {
+            $files = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($folderTemp),
+                \RecursiveIteratorIterator::SELF_FIRST
+            );
 
-        // Ambil ukuran file hasil backup
-        $fileSize = file_exists($fileRar) ? filesize($fileRar) : 0;
+            foreach ($files as $file) {
+                if (!$file->isDir()) {
+                    $filePath    = $file->getRealPath();
+                    $relativePath = substr($filePath, strlen($folderTemp) + 1);
 
-        // Simpan log ke database
-        DataBackup::create([
-            'file_name' => basename($fileRar),
-            'file_path' => $fileRar,
-            'file_size' => number_format($fileSize / 1024 / 1024, 2) . ' MB',
-            'created_by' => Auth::guard('admin')->user()->name ?? 'System',
-            'status' => file_exists($fileRar) ? 'Sukses' : 'Gagal',
-        ]);
+                    $zip->addFile($filePath, $relativePath);
+                }
+            }
 
-        // Hapus folder sementara
+            $zip->close();
+        }
+
+        // Hapus folder temp
         File::deleteDirectory($folderTemp);
 
-        return redirect()->back()->with('success', 'Backup berhasil dibuat dan disimpan di C:\\Backupdata\\');
+        // Catat log
+        $fileSize = filesize($fileZip);
+        DataBackup::create([
+            'file_name' => "backup_$timestamp.zip",
+            'file_path' => $fileZip,
+            'file_size' => number_format($fileSize / 1024 / 1024, 2) . ' MB',
+            'created_by' => Auth::guard('admin')->user()->name ?? 'System',
+            'status' => 'Sukses',
+        ]);
+
+        // 👉 Langsung download ke komputer admin
+        return response()->download($fileZip)->deleteFileAfterSend(true);
     }
+
 
     public function resetSystem()
     {

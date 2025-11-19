@@ -45,7 +45,7 @@
                         File akan disimpan di:
                     </p>
                     <div class="text-center">
-                        <code>C:\Backupdata\</code>
+                        <code>Buka Folder Download Tempat Menyimpan File</code>
                     </div>
                 </div>
                 <div class="modal-footer">

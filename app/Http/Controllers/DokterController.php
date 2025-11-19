@@ -57,7 +57,11 @@ class DokterController extends Controller
         // 1. Total pasien hari ini (Hari ini = Hari ini mendaftar, tanpa filter status berkas)
         // Asumsi: Anda tetap ingin menghitung semua yang mendaftar hari ini, terlepas dari status berkasnya,
         // karena fokus filter ada di status pemeriksaan.
-        $totalPasienHariIni = DataPasien::whereDate('created_at', $today)->count();
+        $totalPasienHariIni = DataPasien::whereDate('tgl_kunjungan', Carbon::today())
+            ->whereIn('status_berkas', ['Belum Diverifikasi', 'Sudah Diverifikasi'])
+            ->count();
+
+
 
         // 2. Total pasien belum diperiksa
         // Logika Diperbarui: Hanya hitung yang 'Belum Diperiksa' DAN (bukan Masyarakat Umum ATAU Masyarakat Umum dengan status berkas 'Sudah Diverifikasi')
